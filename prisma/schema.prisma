@@ -132,6 +132,7 @@ model PostStats {
   spamReports         Int      @default(0) @map("spam_reports")
   unsubscribes        Int      @default(0) @map("unsubscribes")
   unsubscribeRate     Float    @default(0) @map("unsubscribe_rate")
+  clicks              String?  @db.Text // JSON array com dados de cliques por URL
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 

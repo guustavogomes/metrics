@@ -172,6 +172,7 @@ export async function POST(
           clicks: emailStats.unique_clicks,
           sent: emailStats.recipients,
           delivered: emailStats.delivered,
+          clicksData: postData.stats.clicks ? `${postData.stats.clicks.length} URLs` : 'nenhuma',
         });
 
         // Calcular métricas derivadas
@@ -189,6 +190,11 @@ export async function POST(
           ? (emailStats.unique_clicks / emailStats.unique_opens) * 100
           : 0;
 
+        // Serializar dados de cliques (URLs) como JSON
+        const clicksJson = postData.stats.clicks 
+          ? JSON.stringify(postData.stats.clicks)
+          : null;
+
         const statsData = {
           uniqueOpens: emailStats.unique_opens || 0,
           uniqueClicks: emailStats.unique_clicks || 0,
@@ -202,6 +208,7 @@ export async function POST(
           spamReports: emailStats.spam_reports || 0,
           unsubscribes: emailStats.unsubscribes || 0,
           unsubscribeRate: unsubscribeRate,
+          clicks: clicksJson,
         };
 
         if (post.stats) {

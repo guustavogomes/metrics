@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Calendar, BarChart2, FileText, TrendingUp, Users, Mail, MousePointerClick, UserPlus, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowLeft, Loader2, Calendar, BarChart2, FileText, TrendingUp, Users, Mail, MousePointerClick, UserPlus, ArrowUpRight, ArrowDownRight, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { PublicationPosts } from "@/components/publication-posts";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
@@ -13,6 +13,7 @@ import { PerformanceBarChart } from "@/components/charts/performance-bar-chart";
 import { DistributionPieChart } from "@/components/charts/distribution-pie-chart";
 import { CumulativeAreaChart } from "@/components/charts/cumulative-area-chart";
 import { RatesLineChart } from "@/components/charts/rates-line-chart";
+import UrlAnalytics from "@/components/url-analytics";
 
 export default function PublicationDetailPage() {
   const params = useParams();
@@ -90,7 +91,7 @@ export default function PublicationDetailPage() {
       </div>
 
       <Tabs defaultValue="metrics" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4">
           <TabsTrigger value="metrics" className="flex items-center gap-2">
             <BarChart2 className="h-4 w-4" />
             Métricas
@@ -98,6 +99,10 @@ export default function PublicationDetailPage() {
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Analytics
+          </TabsTrigger>
+          <TabsTrigger value="urls" className="flex items-center gap-2">
+            <LinkIcon className="h-4 w-4" />
+            URLs
           </TabsTrigger>
           <TabsTrigger value="posts" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -568,6 +573,10 @@ export default function PublicationDetailPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="urls" className="mt-6">
+          <UrlAnalytics publicationId={publicationId} />
         </TabsContent>
 
         <TabsContent value="posts" className="mt-6">

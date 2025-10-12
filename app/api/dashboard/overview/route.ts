@@ -17,7 +17,6 @@ export async function GET() {
 
     // Buscar todas as publicações do usuário com TODOS os posts sincronizados
     const publications = await prisma.publication.findMany({
-      where: { userId },
       include: {
         posts: {
           where: {
