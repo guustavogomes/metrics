@@ -48,18 +48,33 @@ export async function GET() {
     let postsLast7Days = 0;
     let subscribersLast7Days = 0;
 
+    console.log("\n📊 Calculando Total de Assinantes por Newsletter:");
+    console.log("━".repeat(60));
+
     publications.forEach((publication) => {
+      // Para cada publicação, pegar o post mais recente com stats
+      const publicationPosts = publication.posts
+        .filter((p) => p.stats && p.publishDate)
+        .sort((a, b) => new Date(b.publishDate!).getTime() - new Date(a.publishDate!).getTime());
+      
+      // Somar os assinantes da publicação (post mais recente)
+      if (publicationPosts.length > 0 && publicationPosts[0].stats) {
+        const subscribers = publicationPosts[0].stats.totalSent;
+        totalSubscribers += subscribers;
+        
+        console.log(`📰 ${publication.name.padEnd(30)} → ${subscribers.toLocaleString("pt-BR").padStart(10)} assinantes`);
+        console.log(`   └─ Post: ${publicationPosts[0].title.substring(0, 50)}...`);
+        console.log(`   └─ Data: ${new Date(publicationPosts[0].publishDate!).toLocaleDateString("pt-BR")}`);
+      } else {
+        console.log(`📰 ${publication.name.padEnd(30)} → SEM DADOS`);
+      }
+
       publication.posts.forEach((post) => {
         if (post.stats) {
           totalOpens += post.stats.uniqueOpens;
           totalClicks += post.stats.uniqueClicks;
           totalSent += post.stats.totalSent;
           totalPosts++;
-
-          // Maior número de totalSent = base atual aproximada
-          if (post.stats.totalSent > totalSubscribers) {
-            totalSubscribers = post.stats.totalSent;
-          }
 
           // Posts dos últimos 30 dias
           if (post.publishDate && post.publishDate >= thirtyDaysAgo) {
@@ -73,6 +88,10 @@ export async function GET() {
         }
       });
     });
+
+    console.log("━".repeat(60));
+    console.log(`✅ TOTAL GERAL: ${totalSubscribers.toLocaleString("pt-BR")} assinantes`);
+    console.log(`   (${publications.length} newsletters sincronizadas)\n`);
 
     // Calcular taxas médias
     const avgOpenRate =
