@@ -135,6 +135,7 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
   // Mutation para sincronizar posts
   const syncPostsMutation = useMutation({
     mutationFn: async () => {
+      console.log("🚀 Iniciando sincronização de POSTS...");
       const response = await fetch(
         `/api/publications/${publicationId}/posts/sync`,
         { method: "POST" }
@@ -143,6 +144,7 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("✅ Sincronização de POSTS concluída:", data.stats);
       const message = data.stats.isIncremental 
         ? `✅ ${data.stats.total} posts sincronizados (incremental)`
         : `✅ ${data.stats.total} posts sincronizados!`;
@@ -178,6 +180,7 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
   // Mutation para sincronizar estatísticas
   const syncStatsMutation = useMutation({
     mutationFn: async () => {
+      console.log("🚀 Iniciando sincronização de STATS...");
       const response = await fetch(
         `/api/publications/${publicationId}/posts/sync-stats`,
         { method: "POST" }
@@ -186,6 +189,7 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("✅ Sincronização de STATS concluída:", data.stats);
       toast.success(`${data.stats.total} estatísticas sincronizadas!`);
       // Invalidar cache novamente para mostrar as stats
       queryClient.invalidateQueries({
@@ -236,6 +240,8 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
   const posts = data?.data || [];
   const pagination = data?.pagination;
   const isSyncing = syncPostsMutation.isPending || syncStatsMutation.isPending;
+  
+  console.log(`📊 PublicationPosts - isSyncing: ${isSyncing} (posts: ${syncPostsMutation.isPending}, stats: ${syncStatsMutation.isPending})`);
 
   return (
     <div className="space-y-4">

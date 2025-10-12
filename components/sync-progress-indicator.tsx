@@ -30,9 +30,11 @@ export function SyncProgressIndicator({
   const [postsProgress, setPostsProgress] = useState<SyncProgress | null>(null);
   const [statsProgress, setStatsProgress] = useState<SyncProgress | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
-  const [hasActiveProgress, setHasActiveProgress] = useState(false);
+  const [keepPolling, setKeepPolling] = useState(false);
 
   useEffect(() => {
+    console.log(`🔄 SyncProgressIndicator - isSyncing: ${isSyncing}, keepPolling: ${keepPolling}`);
+    
     // Buscar imediatamente ao iniciar
     const fetchProgress = async () => {
       try {
@@ -41,11 +43,18 @@ export function SyncProgressIndicator({
         );
         if (response.ok) {
           const data = await response.json();
-          console.log("📊 Progresso atualizado:", data.progress);
           
           const hasRunningProgress = 
             data.progress.posts?.status === "running" || 
             data.progress.stats?.status === "running";
+          
+          console.log("📊 Progresso atualizado:", {
+            posts: data.progress.posts?.status,
+            stats: data.progress.stats?.status,
+            hasRunning: hasRunningProgress,
+            postsMsg: data.progress.posts?.message,
+            statsMsg: data.progress.stats?.message,
+          });
           
           if (data.progress.posts) {
             setPostsProgress(data.progress.posts);
@@ -54,34 +63,46 @@ export function SyncProgressIndicator({
             setStatsProgress(data.progress.stats);
           }
           
-          setHasActiveProgress(hasRunningProgress);
+          // Continuar polling se houver qualquer progresso ativo
+          setKeepPolling(hasRunningProgress);
           setLastUpdate(Date.now());
         }
       } catch (error) {
-        console.error("Erro ao buscar progresso:", error);
+        console.error("❌ Erro ao buscar progresso:", error);
       }
     };
 
-    // Se está sincronizando OU se tem progresso ativo, continuar polling
-    if (isSyncing || hasActiveProgress) {
+    // Se está sincronizando OU se deve continuar polling, fazer polling
+    const shouldPoll = isSyncing || keepPolling;
+    console.log(`🔍 shouldPoll: ${shouldPoll} (isSyncing: ${isSyncing}, keepPolling: ${keepPolling})`);
+    
+    if (shouldPoll) {
       // Buscar imediatamente
       fetchProgress();
 
-      // Polling a cada 1 segundo para melhor responsividade
-      const interval = setInterval(fetchProgress, 1000);
-      return () => clearInterval(interval);
-    } else {
+      // Polling a cada 500ms para melhor responsividade
+      const interval = setInterval(fetchProgress, 500);
+      return () => {
+        console.log("🛑 Limpando interval");
+        clearInterval(interval);
+      };
+    } else if (postsProgress || statsProgress) {
       // Manter progresso por mais 3 segundos após completar
+      console.log("⏰ Agendando limpeza do progresso em 3s");
       const timeout = setTimeout(() => {
+        console.log("🧹 Limpando progresso");
         setPostsProgress(null);
         setStatsProgress(null);
       }, 3000);
       return () => clearTimeout(timeout);
     }
-  }, [publicationId, isSyncing, hasActiveProgress]);
+  }, [publicationId, isSyncing, keepPolling, postsProgress, statsProgress]);
 
   // Não mostrar se não houver progresso
-  if (!postsProgress && !statsProgress) {
+  const shouldShow = postsProgress || statsProgress;
+  console.log(`👁️ shouldShow: ${shouldShow}`, { postsProgress: !!postsProgress, statsProgress: !!statsProgress });
+  
+  if (!shouldShow) {
     return null;
   }
 
