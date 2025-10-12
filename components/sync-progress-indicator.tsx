@@ -30,17 +30,9 @@ export function SyncProgressIndicator({
   const [postsProgress, setPostsProgress] = useState<SyncProgress | null>(null);
   const [statsProgress, setStatsProgress] = useState<SyncProgress | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
+  const [hasActiveProgress, setHasActiveProgress] = useState(false);
 
   useEffect(() => {
-    if (!isSyncing) {
-      // Manter progresso por mais 3 segundos após completar
-      const timeout = setTimeout(() => {
-        setPostsProgress(null);
-        setStatsProgress(null);
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-
     // Buscar imediatamente ao iniciar
     const fetchProgress = async () => {
       try {
@@ -51,12 +43,18 @@ export function SyncProgressIndicator({
           const data = await response.json();
           console.log("📊 Progresso atualizado:", data.progress);
           
+          const hasRunningProgress = 
+            data.progress.posts?.status === "running" || 
+            data.progress.stats?.status === "running";
+          
           if (data.progress.posts) {
             setPostsProgress(data.progress.posts);
           }
           if (data.progress.stats) {
             setStatsProgress(data.progress.stats);
           }
+          
+          setHasActiveProgress(hasRunningProgress);
           setLastUpdate(Date.now());
         }
       } catch (error) {
@@ -64,14 +62,23 @@ export function SyncProgressIndicator({
       }
     };
 
-    // Buscar imediatamente
-    fetchProgress();
+    // Se está sincronizando OU se tem progresso ativo, continuar polling
+    if (isSyncing || hasActiveProgress) {
+      // Buscar imediatamente
+      fetchProgress();
 
-    // Polling a cada 1 segundo para melhor responsividade
-    const interval = setInterval(fetchProgress, 1000);
-
-    return () => clearInterval(interval);
-  }, [publicationId, isSyncing]);
+      // Polling a cada 1 segundo para melhor responsividade
+      const interval = setInterval(fetchProgress, 1000);
+      return () => clearInterval(interval);
+    } else {
+      // Manter progresso por mais 3 segundos após completar
+      const timeout = setTimeout(() => {
+        setPostsProgress(null);
+        setStatsProgress(null);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [publicationId, isSyncing, hasActiveProgress]);
 
   // Não mostrar se não houver progresso
   if (!postsProgress && !statsProgress) {

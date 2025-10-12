@@ -440,13 +440,11 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
         </Card>
       )}
 
-      {/* Indicador de Progresso */}
-      {isSyncing && (
-        <SyncProgressIndicator
-          publicationId={publicationId}
-          isSyncing={isSyncing}
-        />
-      )}
+      {/* Indicador de Progresso - sempre renderizado, se esconde internamente quando não há progresso */}
+      <SyncProgressIndicator
+        publicationId={publicationId}
+        isSyncing={isSyncing}
+      />
 
       {/* Loading State */}
       {isLoading && (
