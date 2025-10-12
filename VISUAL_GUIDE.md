@@ -440,7 +440,7 @@ C:\Projetos\Metricas\
 - Senha: admin123
 
 ✅ **Beehiiv API Configurada:**
-- API Key: IcHqi6XR5g4xIAfdKsLg488EgJjQDmkTyXs9RhP0lE9enrXnoP7lUBxkBnH5Zbr2
+- API Key: [CONFIGURADA VIA VARIÁVEL DE AMBIENTE]
 
 ✅ **Sistema 100% Funcional!**
 

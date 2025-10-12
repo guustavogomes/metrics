@@ -31,7 +31,7 @@ Todas as rotas de API foram implementadas:
 
 ### 3. Integração com Beehiiv
 A integração real com a API do Beehiiv foi implementada com:
-- API Key configurada: `IcHqi6XR5g4xIAfdKsLg488EgJjQDmkTyXs9RhP0lE9enrXnoP7lUBxkBnH5Zbr2`
+- API Key configurada: `[CONFIGURADA VIA .ENV]`
 - Métodos implementados:
   - `getPublications()` - Buscar publicações
   - `getPublicationById(id)` - Buscar publicação específica
@@ -165,22 +165,24 @@ Na página de detalhes da publicação, adicionar:
 
 ## 🔐 Variáveis de Ambiente
 
-No arquivo `.env`:
+No arquivo `.env` (copie de `.env.example`):
 
 ```env
 # Database
-DATABASE_URL=postgresql://neondb_owner:npg_1almGYL2ehfW@ep-fancy-wind-acmnnvst-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
 
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=change-this-to-a-secure-secret-in-production
+NEXTAUTH_SECRET=your-secure-secret-here
 
 # Beehiiv API
-BEEHIIV_API_KEY=IcHqi6XR5g4xIAfdKsLg488EgJjQDmkTyXs9RhP0lE9enrXnoP7lUBxkBnH5Zbr2
+BEEHIIV_API_KEY=your-beehiiv-api-key-here
 
 # Node Environment
 NODE_ENV=development
 ```
+
+**⚠️ IMPORTANTE:** Nunca commite o arquivo `.env` com suas credenciais reais!
 
 ## 🎯 Testando a API
 

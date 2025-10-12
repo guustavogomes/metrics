@@ -39,6 +39,9 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
+# Permitir .env.example
+!.env.example
+
 # vercel
 .vercel
 
