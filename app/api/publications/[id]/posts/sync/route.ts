@@ -193,15 +193,30 @@ export async function POST(
 
     const wasIncrementalStop = consecutiveExistingPosts >= MAX_CONSECUTIVE_EXISTING;
 
+    // Verificar quantos posts estão sem estatísticas
+    const postsWithoutStats = await prisma.post.count({
+      where: {
+        publicationId: publicationId,
+        status: "confirmed",
+        publishDate: {
+          not: null,
+        },
+        stats: null,
+      },
+    });
+
     console.log(`🎉 Sincronização concluída!`);
     console.log(`   - Novos posts: ${totalSynced}`);
     console.log(`   - Posts atualizados: ${totalUpdated}`);
+    console.log(`   - Posts sem estatísticas: ${postsWithoutStats}`);
     console.log(`   - Total de páginas processadas: ${currentPage - 1}`);
     if (wasIncrementalStop) {
       console.log(`   ⚡ Sincronização incremental: parou ao encontrar posts já sincronizados`);
     }
-    if (totalSynced === 0) {
-      console.log(`   ℹ️  Nenhum post novo - sincronização de stats não será executada`);
+    if (totalSynced === 0 && postsWithoutStats === 0) {
+      console.log(`   ℹ️  Nenhum post novo e todos têm estatísticas`);
+    } else if (postsWithoutStats > 0) {
+      console.log(`   ⚠️  ${postsWithoutStats} posts precisam de estatísticas - sync será executado`);
     }
 
     // Marcar progresso como completo
@@ -221,6 +236,7 @@ export async function POST(
       stats: {
         newPosts: totalSynced,
         updatedPosts: totalUpdated,
+        postsWithoutStats,
         totalPages: currentPage - 1,
         total: totalSynced + totalUpdated,
         isIncremental: wasIncrementalStop,

@@ -152,14 +152,21 @@ export function PublicationPosts({ publicationId }: PublicationPostsProps) {
         queryKey: ["publication-posts", publicationId],
       });
 
-      // APENAS sincronizar estatísticas se houver posts NOVOS
-      if (data.stats.newPosts > 0) {
-        toast.success(`${message} - ${data.stats.newPosts} novos!`);
-        // Iniciar sincronização de estatísticas apenas para posts novos
+      // Sincronizar estatísticas se houver posts NOVOS OU posts SEM estatísticas
+      const needsStatsSync = data.stats.newPosts > 0 || data.stats.postsWithoutStats > 0;
+      
+      if (needsStatsSync) {
+        if (data.stats.newPosts > 0) {
+          toast.success(`${message} - ${data.stats.newPosts} novos!`);
+        } else {
+          toast.success(`${message} - ${data.stats.postsWithoutStats} precisam de estatísticas`);
+        }
+        console.log(`📊 Iniciando sincronização de stats (${data.stats.postsWithoutStats} posts sem stats)`);
+        // Iniciar sincronização de estatísticas
         syncStatsMutation.mutate();
       } else {
-        toast.success(`${message} - Nenhum post novo encontrado.`);
-        console.log("⏭️  Pulando sincronização de stats (nenhum post novo)");
+        toast.success(`${message} - Todos os posts têm estatísticas!`);
+        console.log("✅ Todos os posts já têm estatísticas");
       }
     },
     onError: (error) => {
