@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Calendar, BarChart2, FileText, TrendingUp } from "lucide-react";
+import { ArrowLeft, Loader2, Calendar, BarChart2, FileText, TrendingUp, Users, Mail, MousePointerClick, UserPlus, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import Link from "next/link";
 import { PublicationPosts } from "@/components/publication-posts";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
@@ -112,104 +112,183 @@ export default function PublicationDetailPage() {
             </p>
           </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {isLoadingMetrics ? (
-          <Card className="col-span-full">
+          <Card className="col-span-full border-slate-200 bg-gradient-to-br from-slate-50 to-white">
             <CardContent className="pt-6">
               <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Carregando métricas...</span>
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <span className="ml-2 text-slate-600 font-medium">Carregando métricas...</span>
               </div>
             </CardContent>
           </Card>
         ) : metrics ? (
           <>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            {/* Card 1: Total de Inscritos */}
+            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
+              
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-semibold text-blue-50">
                   Total de Inscritos
                 </CardTitle>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="relative">
+                <div className="text-4xl font-bold mb-1 tracking-tight">
                   {metrics.summary.totalSubscribers.toLocaleString("pt-BR")}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Base atual de inscritos
-                </p>
+                <div className="flex items-center gap-2 text-blue-100">
+                  <p className="text-sm">Base atual de inscritos</p>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            {/* Card 2: Taxa de Abertura */}
+            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
+              
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-semibold text-emerald-50">
                   Taxa de Abertura
                 </CardTitle>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Mail className="h-5 w-5 text-white" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.summary.openRate}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Últimos 30 dias
-                </p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold mb-1 tracking-tight">
+                  {metrics.summary.openRate}%
+                </div>
+                <div className="flex items-center gap-2">
+                  {metrics.summary.openRate >= 30 ? (
+                    <>
+                      <ArrowUpRight className="h-4 w-4 text-emerald-200" />
+                      <p className="text-sm text-emerald-100">Excelente performance</p>
+                    </>
+                  ) : metrics.summary.openRate >= 20 ? (
+                    <>
+                      <ArrowUpRight className="h-4 w-4 text-emerald-200" />
+                      <p className="text-sm text-emerald-100">Bom desempenho</p>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownRight className="h-4 w-4 text-emerald-200" />
+                      <p className="text-sm text-emerald-100">Últimos 30 dias</p>
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            {/* Card 3: Taxa de Cliques */}
+            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-violet-500 via-violet-600 to-violet-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
+              
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-semibold text-violet-50">
                   Taxa de Cliques
                 </CardTitle>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <MousePointerClick className="h-5 w-5 text-white" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{metrics.summary.clickRate}%</div>
-                <p className="text-xs text-muted-foreground">
-                  Últimos 30 dias
-                </p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold mb-1 tracking-tight">
+                  {metrics.summary.clickRate}%
+                </div>
+                <div className="flex items-center gap-2">
+                  {metrics.summary.clickRate >= 20 ? (
+                    <>
+                      <ArrowUpRight className="h-4 w-4 text-violet-200" />
+                      <p className="text-sm text-violet-100">Alto engajamento</p>
+                    </>
+                  ) : metrics.summary.clickRate >= 15 ? (
+                    <>
+                      <ArrowUpRight className="h-4 w-4 text-violet-200" />
+                      <p className="text-sm text-violet-100">Bom engajamento</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-violet-100">Últimos 30 dias</p>
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+            {/* Card 4: Novos Inscritos */}
+            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12" />
+              
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-semibold text-amber-50">
                   Novos Inscritos
                 </CardTitle>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <UserPlus className="h-5 w-5 text-white" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="relative">
+                <div className="text-4xl font-bold mb-1 tracking-tight">
                   {metrics.summary.totalNewSubs.toLocaleString("pt-BR")}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Últimos 30 dias
-                </p>
+                <div className="flex items-center gap-2">
+                  <ArrowUpRight className="h-4 w-4 text-amber-200" />
+                  <p className="text-sm text-amber-100">Crescimento em 30 dias</p>
+                </div>
               </CardContent>
             </Card>
           </>
         ) : (
-          <Card className="col-span-full">
+          <Card className="col-span-full border-amber-200 bg-gradient-to-br from-amber-50 to-white">
             <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                Nenhuma métrica disponível. Sincronize as métricas para visualizar os dados.
+              <p className="text-center text-amber-800 font-medium">
+                ⚠️ Nenhuma métrica disponível. Sincronize as métricas para visualizar os dados.
               </p>
             </CardContent>
           </Card>
         )}
       </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações da Publicação</CardTitle>
-              <CardDescription>Detalhes e configurações</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Beehiiv ID</p>
-                  <p className="text-sm font-mono">{publication.beehiivId}</p>
+          <Card className="border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50 shadow-md">
+            <CardHeader className="border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg">
+                  <FileText className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Criado em</p>
-                  <p className="text-sm flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+                  <CardTitle className="text-slate-900">Informações da Publicação</CardTitle>
+                  <CardDescription>Detalhes e configurações da newsletter</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="group p-4 rounded-lg bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-blue-100 rounded-md group-hover:bg-blue-200 transition-colors">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Beehiiv ID</p>
+                  </div>
+                  <p className="text-sm font-mono text-slate-900 break-all">{publication.beehiivId}</p>
+                </div>
+                
+                <div className="group p-4 rounded-lg bg-white border border-slate-200 hover:border-green-300 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-green-100 rounded-md group-hover:bg-green-200 transition-colors">
+                      <Calendar className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Criado em</p>
+                  </div>
+                  <p className="text-sm font-medium text-slate-900">
                     {new Date(publication.createdAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",
                       month: "long",
@@ -217,9 +296,15 @@ export default function PublicationDetailPage() {
                     })}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Última atualização</p>
-                  <p className="text-sm">
+                
+                <div className="group p-4 rounded-lg bg-white border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-purple-100 rounded-md group-hover:bg-purple-200 transition-colors">
+                      <Calendar className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Última atualização</p>
+                  </div>
+                  <p className="text-sm font-medium text-slate-900">
                     {new Date(publication.updatedAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",
                       month: "long",
