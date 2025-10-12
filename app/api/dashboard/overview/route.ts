@@ -39,10 +39,7 @@ export async function GET() {
       },
     });
 
-    console.log(`\n🔍 DEBUG: ${publications.length} publicações encontradas para o usuário`);
-    publications.forEach((pub, index) => {
-      console.log(`   ${index + 1}. ${pub.name} - ${pub.posts.length} posts com stats (últimos 30 dias)`);
-    });
+    console.log(`📊 [Dashboard] Calculando overview de ${publications.length} publicações`);
 
     // Calcular métricas agregadas
     let totalSubscribers = 0;
@@ -57,43 +54,22 @@ export async function GET() {
 
     let postsLast30Days = 0;
     let postsLast7Days = 0;
-
-    console.log("\n📊 Calculando Total de Assinantes por Newsletter (MESMA LÓGICA DAS PÁGINAS INDIVIDUAIS):");
-    console.log("━".repeat(60));
-
     let newslettersWithData = 0;
-    publications.forEach((publication, index) => {
-      console.log(`\n[${index + 1}/${publications.length}] Processando: ${publication.name}`);
-      console.log(`   Posts disponíveis (últimos 30 dias): ${publication.posts.length}`);
-      
+
+    publications.forEach((publication) => {
       // Filtrar posts com stats
       const postsWithStats = publication.posts.filter((p) => p.stats);
       
-      console.log(`   Posts com estatísticas: ${postsWithStats.length}`);
-      
-      // ✅ USAR A MESMA LÓGICA DAS PÁGINAS INDIVIDUAIS: Math.max()
-      // Pegar o MAIOR totalSent dos posts (representa a base atual)
+      // Usar Math.max() para pegar o maior totalSent (base atual da newsletter)
       if (postsWithStats.length > 0) {
         const maxSubscribers = Math.max(
           ...postsWithStats.map((p) => p.stats?.totalSent || 0)
         );
         
-        const previousTotal = totalSubscribers;
         totalSubscribers += maxSubscribers;
         newslettersWithData++;
         
-        // Encontrar qual post tem o maior número para mostrar no log
-        const maxPost = postsWithStats.find(p => p.stats?.totalSent === maxSubscribers);
-        
-        console.log(`   ✅ ADICIONANDO (Math.max): ${maxSubscribers.toLocaleString("pt-BR")} assinantes`);
-        console.log(`   └─ Total antes: ${previousTotal.toLocaleString("pt-BR")}`);
-        console.log(`   └─ Total depois: ${totalSubscribers.toLocaleString("pt-BR")}`);
-        if (maxPost) {
-          console.log(`   └─ Post com maior base: ${maxPost.title.substring(0, 50)}...`);
-          console.log(`   └─ Data: ${maxPost.publishDate ? new Date(maxPost.publishDate).toLocaleDateString("pt-BR") : "N/A"}`);
-        }
-      } else {
-        console.log(`   ❌ SEM DADOS - Não será contabilizada`);
+        console.log(`   ✅ ${publication.name}: ${maxSubscribers.toLocaleString("pt-BR")} assinantes`);
       }
 
       publication.posts.forEach((post) => {
@@ -114,18 +90,18 @@ export async function GET() {
       });
     });
 
-    console.log("\n" + "━".repeat(60));
-    console.log(`✅ TOTAL GERAL: ${totalSubscribers.toLocaleString("pt-BR")} assinantes`);
-    console.log(`   📊 ${newslettersWithData} newsletters COM dados (de ${publications.length} sincronizadas)`);
-    console.log(`   🎯 Total esperado pelo usuário: 2.200.412`);
-    console.log(`   ${totalSubscribers === 2200412 ? '✅ CORRETO!' : '⚠️ DIFERENÇA: ' + (totalSubscribers - 2200412).toLocaleString("pt-BR")}`);
-    console.log("━".repeat(60) + "\n");
+    console.log(`\n✅ TOTAL DE ASSINANTES: ${totalSubscribers.toLocaleString("pt-BR")} (${newslettersWithData} newsletters)`);
 
-    // Calcular taxas médias
+    // Calcular taxas médias (agregadas de TODAS as newsletters)
     const avgOpenRate =
       totalSent > 0 ? ((totalOpens / totalSent) * 100).toFixed(1) : "0.0";
     const avgClickRate =
       totalOpens > 0 ? ((totalClicks / totalOpens) * 100).toFixed(1) : "0.0";
+    
+    console.log(`📧 TAXA DE ABERTURA: ${avgOpenRate}%`);
+    console.log(`   └─ Total Aberturas: ${totalOpens.toLocaleString("pt-BR")}`);
+    console.log(`   └─ Total Enviados: ${totalSent.toLocaleString("pt-BR")}`);
+    console.log(`   └─ Calculado de: ${totalPosts} posts de TODAS as newsletters`);
 
     // Estimativa de novos inscritos (soma a diferença de cada newsletter)
     let newSubscribersLast7Days = 0;
@@ -158,11 +134,16 @@ export async function GET() {
       }
     });
 
+    console.log(`📰 PUBLICAÇÕES ATIVAS: ${newslettersWithData} de ${publications.length} sincronizadas`);
+    console.log(`   └─ Posts sincronizados: ${totalPosts}`);
+    console.log(`   └─ Posts últimos 30 dias: ${postsLast30Days}`);
+    console.log(`   └─ Posts últimos 7 dias: ${postsLast7Days}\n`);
+
     const data = {
       totalSubscribers,
       openRate: parseFloat(avgOpenRate),
       newSubscribers: newSubscribersLast7Days,
-      totalPublications: publications.length,
+      totalPublications: newslettersWithData, // ✅ Apenas newsletters COM dados
       totalPosts,
       postsLast30Days,
       postsLast7Days,
