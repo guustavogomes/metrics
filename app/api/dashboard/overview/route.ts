@@ -15,35 +15,39 @@ export async function GET() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Buscar todas as publicações do usuário com TODOS os posts sincronizados
-    const publications = await prisma.publication.findMany({
-      where: { userId },
+    // Query otimizada baseada na sugestão SQL
+    const postsWithStats = await prisma.post.findMany({
+      where: {
+        status: "confirmed",
+        stats: {
+          isNot: null,
+        },
+        publication: {
+          userId: userId,
+        },
+      },
       include: {
-        posts: {
-          where: {
-            status: "confirmed",
-            stats: {
-              isNot: null,
-            },
-          },
-          include: {
-            stats: true,
-          },
-          orderBy: {
-            publishDate: "desc",
+        stats: true,
+        publication: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
+      orderBy: {
+        publishDate: "desc",
+      },
     });
 
-    console.log(`📊 [Dashboard] Calculando overview de ${publications.length} publicações`);
+    console.log(`📊 [Dashboard] Encontrados ${postsWithStats.length} posts sincronizados`);
 
     // Calcular métricas agregadas
     let totalSubscribers = 0;
     let totalOpens = 0;
     let totalClicks = 0;
     let totalSent = 0;
-    let totalPostsAll = 0; // TODOS os posts sincronizados
+    let totalPostsAll = postsWithStats.length; // TODOS os posts sincronizados
     let totalPosts30Days = 0; // Posts dos últimos 30 dias (para cálculos)
 
     // Calcular métricas dos últimos 7 dias
@@ -53,42 +57,49 @@ export async function GET() {
     let postsLast7Days = 0;
     let newslettersWithData = 0;
 
-    publications.forEach((publication) => {
-      // TODOS os posts com stats (sem filtro de data)
-      const allPostsWithStats = publication.posts.filter((p) => p.stats);
-      
-      // Usar Math.max() de TODOS os posts para pegar a base atual
-      if (allPostsWithStats.length > 0) {
-        const maxSubscribers = Math.max(
-          ...allPostsWithStats.map((p) => p.stats?.totalSent || 0)
-        );
-        
-        totalSubscribers += maxSubscribers;
-        newslettersWithData++;
-        
-        console.log(`   ✅ ${publication.name}: ${maxSubscribers.toLocaleString("pt-BR")} assinantes (${allPostsWithStats.length} posts sincronizados)`);
+    // Agrupar posts por publicação para calcular total de assinantes
+    const postsByPublication = new Map();
+    
+    postsWithStats.forEach((post) => {
+      const pubId = post.publication.id;
+      if (!postsByPublication.has(pubId)) {
+        postsByPublication.set(pubId, {
+          name: post.publication.name,
+          posts: [],
+        });
       }
+      postsByPublication.get(pubId).posts.push(post);
+    });
 
-      // Iterar sobre TODOS os posts para contagens e agregações
-      publication.posts.forEach((post) => {
-        if (post.stats) {
-          totalPostsAll++; // Contar TODOS
-          
-          // Agregar métricas de TODOS os posts
-          totalOpens += post.stats.uniqueOpens;
-          totalClicks += post.stats.uniqueClicks;
-          totalSent += post.stats.totalSent;
+    // Calcular total de assinantes (Math.max de cada publicação)
+    postsByPublication.forEach((publication, pubId) => {
+      const maxSubscribers = Math.max(
+        ...publication.posts.map((p) => p.stats?.totalSent || 0)
+      );
+      
+      totalSubscribers += maxSubscribers;
+      newslettersWithData++;
+      
+      console.log(`   ✅ ${publication.name}: ${maxSubscribers.toLocaleString("pt-BR")} assinantes (${publication.posts.length} posts sincronizados)`);
+    });
 
-          // Contadores por período (para os cards específicos)
-          if (post.publishDate && post.publishDate >= thirtyDaysAgo) {
-            totalPosts30Days++;
-          }
+    // Agregar métricas de TODOS os posts
+    postsWithStats.forEach((post) => {
+      if (post.stats) {
+        // Agregar métricas de TODOS os posts
+        totalOpens += post.stats.uniqueOpens;
+        totalClicks += post.stats.uniqueClicks;
+        totalSent += post.stats.totalSent;
 
-          if (post.publishDate && post.publishDate >= sevenDaysAgo) {
-            postsLast7Days++;
-          }
+        // Contadores por período (para os cards específicos)
+        if (post.publishDate && post.publishDate >= thirtyDaysAgo) {
+          totalPosts30Days++;
         }
-      });
+
+        if (post.publishDate && post.publishDate >= sevenDaysAgo) {
+          postsLast7Days++;
+        }
+      }
     });
 
     console.log(`\n✅ TOTAL DE ASSINANTES: ${totalSubscribers.toLocaleString("pt-BR")} (${newslettersWithData} newsletters)`);
@@ -135,7 +146,7 @@ export async function GET() {
       }
     });
 
-    console.log(`📰 PUBLICAÇÕES ATIVAS: ${newslettersWithData} de ${publications.length} sincronizadas`);
+    console.log(`📰 PUBLICAÇÕES ATIVAS: ${newslettersWithData} newsletters`);
     console.log(`   └─ Posts sincronizados (TOTAL): ${totalPostsAll}`);
     console.log(`   └─ Posts últimos 30 dias: ${totalPosts30Days}`);
     console.log(`   └─ Posts últimos 7 dias: ${postsLast7Days}\n`);
