@@ -16,7 +16,7 @@ export async function GET() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Query otimizada baseada na sugestão SQL
-    const postsWithStats = await prisma.post.findMany({
+    const postsWithStats = await (prisma as any).post.findMany({
       where: {
         status: "confirmed",
         stats: {
@@ -60,7 +60,7 @@ export async function GET() {
     // Agrupar posts por publicação para calcular total de assinantes
     const postsByPublication = new Map();
     
-    postsWithStats.forEach((post) => {
+    postsWithStats.forEach((post: any) => {
       const pubId = post.publication.id;
       if (!postsByPublication.has(pubId)) {
         postsByPublication.set(pubId, {
@@ -72,9 +72,9 @@ export async function GET() {
     });
 
     // Calcular total de assinantes (Math.max de cada publicação)
-    postsByPublication.forEach((publication, pubId) => {
+    postsByPublication.forEach((publication: any, pubId: string) => {
       const maxSubscribers = Math.max(
-        ...publication.posts.map((p) => p.stats?.totalSent || 0)
+        ...publication.posts.map((p: any) => p.stats?.totalSent || 0)
       );
       
       totalSubscribers += maxSubscribers;
@@ -84,7 +84,7 @@ export async function GET() {
     });
 
     // Agregar métricas de TODOS os posts
-    postsWithStats.forEach((post) => {
+    postsWithStats.forEach((post: any) => {
       if (post.stats) {
         // Agregar métricas de TODOS os posts
         totalOpens += post.stats.uniqueOpens;
@@ -118,18 +118,18 @@ export async function GET() {
     // Estimativa de novos inscritos (soma a diferença de cada newsletter)
     let newSubscribersLast7Days = 0;
     
-    publications.forEach((publication) => {
-      const postsWithStats = publication.posts.filter(p => p.stats && p.publishDate);
+    postsByPublication.forEach((publication) => {
+      const postsWithPublishDate = publication.posts.filter((p: any) => p.stats && p.publishDate);
       
-      if (postsWithStats.length >= 2) {
+      if (postsWithPublishDate.length >= 2) {
         // Ordenar por data
-        const sortedPosts = [...postsWithStats].sort(
-          (a, b) => new Date(a.publishDate!).getTime() - new Date(b.publishDate!).getTime()
+        const sortedPosts = [...postsWithPublishDate].sort(
+          (a: any, b: any) => new Date(a.publishDate!).getTime() - new Date(b.publishDate!).getTime()
         );
         
         // Pegar posts dos últimos 7 dias
         const postsLast7 = sortedPosts.filter(
-          (p) => p.publishDate && new Date(p.publishDate) >= sevenDaysAgo
+          (p: any) => p.publishDate && new Date(p.publishDate) >= sevenDaysAgo
         );
         
         if (postsLast7.length >= 2) {
