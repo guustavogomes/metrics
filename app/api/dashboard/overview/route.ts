@@ -57,15 +57,10 @@ export async function GET() {
       // TODOS os posts com stats (sem filtro de data)
       const allPostsWithStats = publication.posts.filter((p) => p.stats);
       
-      // Posts dos últimos 30 dias (para cálculo de base atual)
-      const postsLast30Days = allPostsWithStats.filter(
-        (p) => p.publishDate && p.publishDate >= thirtyDaysAgo
-      );
-      
-      // Usar Math.max() dos últimos 30 dias para pegar a base atual
-      if (postsLast30Days.length > 0) {
+      // Usar Math.max() de TODOS os posts para pegar a base atual
+      if (allPostsWithStats.length > 0) {
         const maxSubscribers = Math.max(
-          ...postsLast30Days.map((p) => p.stats?.totalSent || 0)
+          ...allPostsWithStats.map((p) => p.stats?.totalSent || 0)
         );
         
         totalSubscribers += maxSubscribers;
@@ -78,16 +73,17 @@ export async function GET() {
       publication.posts.forEach((post) => {
         if (post.stats) {
           totalPostsAll++; // Contar TODOS
+          
+          // Agregar métricas de TODOS os posts
+          totalOpens += post.stats.uniqueOpens;
+          totalClicks += post.stats.uniqueClicks;
+          totalSent += post.stats.totalSent;
 
-          // Agregar métricas apenas dos últimos 30 dias
+          // Contadores por período (para os cards específicos)
           if (post.publishDate && post.publishDate >= thirtyDaysAgo) {
-            totalOpens += post.stats.uniqueOpens;
-            totalClicks += post.stats.uniqueClicks;
-            totalSent += post.stats.totalSent;
             totalPosts30Days++;
           }
 
-          // Posts dos últimos 7 dias
           if (post.publishDate && post.publishDate >= sevenDaysAgo) {
             postsLast7Days++;
           }
@@ -106,7 +102,7 @@ export async function GET() {
     console.log(`📧 TAXA DE ABERTURA: ${avgOpenRate}%`);
     console.log(`   └─ Total Aberturas: ${totalOpens.toLocaleString("pt-BR")}`);
     console.log(`   └─ Total Enviados: ${totalSent.toLocaleString("pt-BR")}`);
-    console.log(`   └─ Calculado de: ${totalPosts30Days} posts dos últimos 30 dias`);
+    console.log(`   └─ Calculado de: ${totalPostsAll} posts sincronizados (TODOS)`);
 
     // Estimativa de novos inscritos (soma a diferença de cada newsletter)
     let newSubscribersLast7Days = 0;
