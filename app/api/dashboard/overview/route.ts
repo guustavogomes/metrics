@@ -29,6 +29,11 @@ export async function GET() {
       },
     });
 
+    console.log(`\n🔍 DEBUG: ${publications.length} publicações encontradas para o usuário`);
+    publications.forEach((pub, index) => {
+      console.log(`   ${index + 1}. ${pub.name} - ${pub.posts.length} posts com stats`);
+    });
+
     // Calcular métricas agregadas
     let totalSubscribers = 0;
     let totalOpens = 0;
@@ -51,22 +56,32 @@ export async function GET() {
     console.log("\n📊 Calculando Total de Assinantes por Newsletter:");
     console.log("━".repeat(60));
 
-    publications.forEach((publication) => {
+    let newslettersWithData = 0;
+    publications.forEach((publication, index) => {
+      console.log(`\n[${index + 1}/${publications.length}] Processando: ${publication.name}`);
+      console.log(`   Posts disponíveis na query: ${publication.posts.length}`);
+      
       // Para cada publicação, pegar o post mais recente com stats
       const publicationPosts = publication.posts
         .filter((p) => p.stats && p.publishDate)
         .sort((a, b) => new Date(b.publishDate!).getTime() - new Date(a.publishDate!).getTime());
       
+      console.log(`   Posts após filtro (stats + publishDate): ${publicationPosts.length}`);
+      
       // Somar os assinantes da publicação (post mais recente)
       if (publicationPosts.length > 0 && publicationPosts[0].stats) {
         const subscribers = publicationPosts[0].stats.totalSent;
+        const previousTotal = totalSubscribers;
         totalSubscribers += subscribers;
+        newslettersWithData++;
         
-        console.log(`📰 ${publication.name.padEnd(30)} → ${subscribers.toLocaleString("pt-BR").padStart(10)} assinantes`);
+        console.log(`   ✅ ADICIONANDO: ${subscribers.toLocaleString("pt-BR")} assinantes`);
+        console.log(`   └─ Total antes: ${previousTotal.toLocaleString("pt-BR")}`);
+        console.log(`   └─ Total depois: ${totalSubscribers.toLocaleString("pt-BR")}`);
         console.log(`   └─ Post: ${publicationPosts[0].title.substring(0, 50)}...`);
         console.log(`   └─ Data: ${new Date(publicationPosts[0].publishDate!).toLocaleDateString("pt-BR")}`);
       } else {
-        console.log(`📰 ${publication.name.padEnd(30)} → SEM DADOS`);
+        console.log(`   ❌ SEM DADOS - Não será contabilizada`);
       }
 
       publication.posts.forEach((post) => {
@@ -89,9 +104,12 @@ export async function GET() {
       });
     });
 
-    console.log("━".repeat(60));
+    console.log("\n" + "━".repeat(60));
     console.log(`✅ TOTAL GERAL: ${totalSubscribers.toLocaleString("pt-BR")} assinantes`);
-    console.log(`   (${publications.length} newsletters sincronizadas)\n`);
+    console.log(`   📊 ${newslettersWithData} newsletters COM dados (de ${publications.length} sincronizadas)`);
+    console.log(`   🎯 Total esperado pelo usuário: 2.200.412`);
+    console.log(`   ${totalSubscribers === 2200412 ? '✅ CORRETO!' : '⚠️ DIFERENÇA: ' + (totalSubscribers - 2200412).toLocaleString("pt-BR")}`);
+    console.log("━".repeat(60) + "\n");
 
     // Calcular taxas médias
     const avgOpenRate =
