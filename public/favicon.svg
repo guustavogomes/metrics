@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background -->
+  <rect width="100" height="100" rx="20" fill="#f59e0b"/>
+  
+  <!-- Waffle grid pattern -->
+  <g fill="#d97706" opacity="0.8">
+    <!-- Horizontal lines -->
+    <rect x="15" y="25" width="70" height="3" rx="1"/>
+    <rect x="15" y="35" width="70" height="3" rx="1"/>
+    <rect x="15" y="45" width="70" height="3" rx="1"/>
+    <rect x="15" y="55" width="70" height="3" rx="1"/>
+    <rect x="15" y="65" width="70" height="3" rx="1"/>
+    <rect x="15" y="75" width="70" height="3" rx="1"/>
+    
+    <!-- Vertical lines -->
+    <rect x="25" y="22" width="3" height="56" rx="1"/>
+    <rect x="35" y="22" width="3" height="56" rx="1"/>
+    <rect x="45" y="22" width="3" height="56" rx="1"/>
+    <rect x="55" y="22" width="3" height="56" rx="1"/>
+    <rect x="65" y="22" width="3" height="56" rx="1"/>
+    <rect x="75" y="22" width="3" height="56" rx="1"/>
+  </g>
+  
+  <!-- Waffle outline -->
+  <rect x="15" y="22" width="70" height="56" rx="6" fill="none" stroke="#92400e" stroke-width="4"/>
+  
+  <!-- Chart bars overlay (representing metrics) -->
+  <g opacity="0.9">
+    <rect x="22" y="60" width="8" height="15" rx="2" fill="#3b82f6"/>
+    <rect x="37" y="50" width="8" height="25" rx="2" fill="#10b981"/>
+    <rect x="52" y="45" width="8" height="30" rx="2" fill="#8b5cf6"/>
+    <rect x="67" y="55" width="8" height="20" rx="2" fill="#ef4444"/>
+  </g>
+  
+  <!-- Shine effect -->
+  <circle cx="30" cy="35" r="8" fill="white" opacity="0.3"/>
+</svg>

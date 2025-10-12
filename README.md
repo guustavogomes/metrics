@@ -1,6 +1,6 @@
-# Newsletter Metrics
+# 🧇 Waffle Metrics
 
-Sistema de métricas para gestão de newsletters do Beehiiv, desenvolvido com Next.js 14, TypeScript, Prisma, e NextAuth.
+Sistema de análise e métricas para newsletters do Beehiiv, desenvolvido com Next.js 14, TypeScript, Prisma, e NextAuth.
 
 ## Tecnologias Utilizadas
 

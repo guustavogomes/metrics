@@ -39,7 +39,7 @@ export default function DashboardLayoutClient({
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">Newsletter Metrics</h1>
+              <h1 className="text-lg font-bold text-slate-900">Waffle Metrics</h1>
               <p className="text-xs text-slate-500">Analytics Dashboard</p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function DashboardLayoutClient({
                     <BarChart3 className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold">Newsletter Metrics</h1>
+                    <h1 className="text-lg font-bold">Waffle Metrics</h1>
                     <p className="text-xs text-slate-500">Analytics Dashboard</p>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export default function DashboardLayoutClient({
           </button>
           <div className="flex-1 flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-blue-600" />
-            <span className="text-sm font-semibold">Newsletter Metrics</span>
+            <span className="text-sm font-semibold">Waffle Metrics</span>
           </div>
           <UserNav user={session?.user} />
         </div>

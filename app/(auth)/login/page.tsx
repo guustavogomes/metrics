@@ -80,7 +80,7 @@ export default function LoginPage() {
             <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
               <BarChart3 className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Newsletter Metrics</h1>
+            <h1 className="text-3xl font-bold text-white">Waffle Metrics</h1>
           </div>
           
           <div className="space-y-6 mt-16">
@@ -118,7 +118,7 @@ export default function LoginPage() {
             <div className="bg-blue-600 p-2 rounded-lg">
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Newsletter Metrics</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Waffle Metrics</h1>
           </div>
 
           {/* Card de Login */}
@@ -209,7 +209,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="text-center text-sm text-slate-500 mt-8">
-            © 2025 Newsletter Metrics. Todos os direitos reservados.
+            © 2025 Waffle Metrics. Todos os direitos reservados.
           </p>
         </div>
       </div>
