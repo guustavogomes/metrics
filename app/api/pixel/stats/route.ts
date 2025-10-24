@@ -80,15 +80,16 @@ export async function GET(request: NextRequest) {
 
     statsResult.rows.forEach((row) => {
       const type = row.edition_type as "morning" | "night";
+      const uniqueReaders = parseInt(row.unique_readers);
       stats[type] = {
-        total: parseInt(row.total_opens),
-        average: Math.round(parseInt(row.total_opens) / days),
-        uniqueReaders: parseInt(row.unique_readers),
+        total: uniqueReaders, // Usar unique_readers em vez de total_opens
+        average: Math.round(uniqueReaders / days),
+        uniqueReaders: uniqueReaders,
         trend: 0, // Será calculado comparando com período anterior
       };
     });
 
-    // Processar dados diários
+    // Processar dados diários (usando unique_readers)
     const dailyDataMap = new Map<string, { morning: number; night: number }>();
     dailyResult.rows.forEach((row) => {
       const dateStr = new Date(row.date).toLocaleDateString("pt-BR", {
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
         dailyDataMap.set(dateStr, { morning: 0, night: 0 });
       }
       const data = dailyDataMap.get(dateStr)!;
-      data[row.edition_type as "morning" | "night"] = parseInt(row.total_opens);
+      data[row.edition_type as "morning" | "night"] = parseInt(row.unique_readers); // Usar unique_readers
     });
 
     const dailyData = Array.from(dailyDataMap.entries()).map(([date, data]) => ({
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
     weekdayResult.rows.forEach((row) => {
       const dayNum = parseInt(row.day_of_week);
       const data = weekdayDataMap.get(dayNum)!;
-      data[row.edition_type as "morning" | "night"] = parseInt(row.total_opens);
+      data[row.edition_type as "morning" | "night"] = parseInt(row.unique_readers); // Usar unique_readers
     });
 
     const weekdayData = Array.from(weekdayDataMap.values())

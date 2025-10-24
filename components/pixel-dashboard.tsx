@@ -119,7 +119,7 @@ export function PixelDashboard() {
                 {stats.morning.total.toLocaleString()}
               </div>
               <div className="text-sm text-slate-600 mt-1">
-                Média: {stats.morning.average} aberturas/dia
+                Média: {stats.morning.average} aberturas únicas/dia
               </div>
             </div>
             <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md">
@@ -141,7 +141,7 @@ export function PixelDashboard() {
                 {stats.night.total.toLocaleString()}
               </div>
               <div className="text-sm text-slate-600 mt-1">
-                Média: {stats.night.average} aberturas/dia
+                Média: {stats.night.average} aberturas únicas/dia
               </div>
             </div>
             <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md">
@@ -173,9 +173,9 @@ export function PixelDashboard() {
       {/* Gráfico de Evolução Diária */}
       <Card className="p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-900">Evolução Diária de Aberturas</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Evolução Diária de Aberturas Únicas</h3>
           <p className="text-sm text-slate-600 mt-1">
-            Comparação das leituras entre edições da manhã e noite
+            Comparação de leitores únicos entre edições da manhã e noite
           </p>
         </div>
         <ResponsiveContainer width="100%" height={400}>
@@ -216,9 +216,9 @@ export function PixelDashboard() {
       {/* Gráfico por Dia da Semana */}
       <Card className="p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-900">Performance por Dia da Semana</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Aberturas Únicas por Dia da Semana</h3>
           <p className="text-sm text-slate-600 mt-1">
-            Análise de padrões de leitura ao longo da semana
+            Análise de leitores únicos ao longo da semana
           </p>
         </div>
         <ResponsiveContainer width="100%" height={350}>
@@ -245,7 +245,7 @@ export function PixelDashboard() {
         <h3 className="text-lg font-semibold text-slate-900 mb-3">💡 Insights</h3>
         <div className="space-y-2 text-sm text-slate-700">
           <p>
-            • A edição da manhã tem <strong>{((stats.morning.total / stats.night.total) * 100 - 100).toFixed(1)}% mais aberturas</strong> do que a edição noturna.
+            • A edição da manhã tem <strong>{((stats.morning.total / stats.night.total) * 100 - 100).toFixed(1)}% mais leitores únicos</strong> do que a edição noturna.
           </p>
           <p>
             • A edição noturna cresceu <strong>{stats.night.trend}%</strong> no período, mostrando boa aceitação.
