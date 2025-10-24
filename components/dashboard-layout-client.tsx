@@ -3,12 +3,13 @@
 import { UserNav } from "@/components/user-nav";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Newspaper, 
+import {
+  LayoutDashboard,
+  Newspaper,
   BarChart3,
   Menu,
-  X
+  X,
+  Eye
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Publicações", href: "/publications", icon: Newspaper },
+  { name: "Pixel", href: "/pixel", icon: Eye },
 ];
 
 export default function DashboardLayoutClient({
