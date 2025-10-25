@@ -42,7 +42,7 @@ interface PixelData {
 }
 
 export function PixelDashboard() {
-  const [dateRange, setDateRange] = useState("30");
+  const [dateRange, setDateRange] = useState("7");
   const [data, setData] = useState<PixelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
