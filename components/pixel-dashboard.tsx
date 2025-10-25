@@ -199,6 +199,7 @@ export function PixelDashboard() {
               strokeWidth={2}
               dot={{ r: 4 }}
               activeDot={{ r: 6 }}
+              label={{ position: 'top', fill: '#f59e0b', fontSize: 11 }}
             />
             <Line
               type="monotone"
@@ -208,6 +209,7 @@ export function PixelDashboard() {
               strokeWidth={2}
               dot={{ r: 4 }}
               activeDot={{ r: 6 }}
+              label={{ position: 'bottom', fill: '#6366f1', fontSize: 11 }}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -234,8 +236,8 @@ export function PixelDashboard() {
               }}
             />
             <Legend />
-            <Bar dataKey="morning" name="Manhã" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="night" name="Noite" fill="#6366f1" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="morning" name="Manhã" fill="#f59e0b" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#f59e0b', fontSize: 11 }} />
+            <Bar dataKey="night" name="Noite" fill="#6366f1" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#6366f1', fontSize: 11 }} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
