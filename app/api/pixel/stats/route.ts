@@ -76,10 +76,16 @@ export async function GET(request: NextRequest) {
         uniqueReaders: 0,
         trend: 0,
       },
+      sunday: {
+        total: 0,
+        average: 0,
+        uniqueReaders: 0,
+        trend: 0,
+      },
     };
 
     statsResult.rows.forEach((row) => {
-      const type = row.edition_type as "morning" | "night";
+      const type = row.edition_type as "morning" | "night" | "sunday";
       const uniqueReaders = parseInt(row.unique_readers);
       stats[type] = {
         total: uniqueReaders, // Usar unique_readers em vez de total_opens
@@ -90,17 +96,17 @@ export async function GET(request: NextRequest) {
     });
 
     // Processar dados diários (usando unique_readers)
-    const dailyDataMap = new Map<string, { morning: number; night: number }>();
+    const dailyDataMap = new Map<string, { morning: number; night: number; sunday: number }>();
     dailyResult.rows.forEach((row) => {
       const dateStr = new Date(row.date).toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
       });
       if (!dailyDataMap.has(dateStr)) {
-        dailyDataMap.set(dateStr, { morning: 0, night: 0 });
+        dailyDataMap.set(dateStr, { morning: 0, night: 0, sunday: 0 });
       }
       const data = dailyDataMap.get(dateStr)!;
-      data[row.edition_type as "morning" | "night"] = parseInt(row.unique_readers); // Usar unique_readers
+      data[row.edition_type as "morning" | "night" | "sunday"] = parseInt(row.unique_readers); // Usar unique_readers
     });
 
     const dailyData = Array.from(dailyDataMap.entries()).map(([date, data]) => ({
@@ -110,20 +116,19 @@ export async function GET(request: NextRequest) {
 
     // Processar dados por dia da semana
     const weekdayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    const weekdayDataMap = new Map<number, { day: string; morning: number; night: number }>();
+    const weekdayDataMap = new Map<number, { day: string; morning: number; night: number; sunday: number }>();
 
     for (let i = 0; i <= 6; i++) {
-      weekdayDataMap.set(i, { day: weekdayNames[i], morning: 0, night: 0 });
+      weekdayDataMap.set(i, { day: weekdayNames[i], morning: 0, night: 0, sunday: 0 });
     }
 
     weekdayResult.rows.forEach((row) => {
       const dayNum = parseInt(row.day_of_week);
       const data = weekdayDataMap.get(dayNum)!;
-      data[row.edition_type as "morning" | "night"] = parseInt(row.unique_readers); // Usar unique_readers
+      data[row.edition_type as "morning" | "night" | "sunday"] = parseInt(row.unique_readers); // Usar unique_readers
     });
 
-    const weekdayData = Array.from(weekdayDataMap.values())
-      .filter((d) => d.day !== "Dom"); // Remover domingo
+    const weekdayData = Array.from(weekdayDataMap.values()); // Manter todos os dias incluindo domingo
 
     return NextResponse.json({
       stats,

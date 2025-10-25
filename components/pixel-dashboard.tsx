@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Sun, Moon, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { Sun, Moon, TrendingUp, TrendingDown, Activity, Calendar } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -30,9 +30,15 @@ interface PixelData {
       uniqueReaders: number;
       trend: number;
     };
+    sunday: {
+      total: number;
+      average: number;
+      uniqueReaders: number;
+      trend: number;
+    };
   };
-  dailyData: Array<{ date: string; morning: number; night: number }>;
-  weekdayData: Array<{ day: string; morning: number; night: number }>;
+  dailyData: Array<{ date: string; morning: number; night: number; sunday: number }>;
+  weekdayData: Array<{ day: string; morning: number; night: number; sunday: number }>;
 }
 
 export function PixelDashboard() {
@@ -106,7 +112,7 @@ export function PixelDashboard() {
       </Card>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Edição Manhã */}
         <Card className="p-6 border-l-4 border-l-amber-500 hover:shadow-lg transition-shadow">
           <div className="flex items-start justify-between">
@@ -147,6 +153,28 @@ export function PixelDashboard() {
             <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md">
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm font-semibold">+{stats.night.trend}%</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Edição Domingo */}
+        <Card className="p-6 border-l-4 border-l-emerald-500 hover:shadow-lg transition-shadow">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-emerald-600 mb-2">
+                <Calendar className="h-5 w-5" />
+                <span className="text-sm font-semibold">Edição Domingo</span>
+              </div>
+              <div className="text-3xl font-bold text-slate-900">
+                {stats.sunday.total.toLocaleString()}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                Média: {stats.sunday.average} aberturas únicas/dia
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm font-semibold">+{stats.sunday.trend}%</span>
             </div>
           </div>
         </Card>
@@ -211,6 +239,16 @@ export function PixelDashboard() {
               activeDot={{ r: 6 }}
               label={{ position: 'bottom', fill: '#6366f1', fontSize: 11 }}
             />
+            <Line
+              type="monotone"
+              dataKey="sunday"
+              name="Domingo"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+              label={{ position: 'top', fill: '#10b981', fontSize: 11 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </Card>
@@ -238,6 +276,7 @@ export function PixelDashboard() {
             <Legend />
             <Bar dataKey="morning" name="Manhã" fill="#f59e0b" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#f59e0b', fontSize: 11 }} />
             <Bar dataKey="night" name="Noite" fill="#6366f1" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#6366f1', fontSize: 11 }} />
+            <Bar dataKey="sunday" name="Domingo" fill="#10b981" radius={[8, 8, 0, 0]} label={{ position: 'top', fill: '#10b981', fontSize: 11 }} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -250,10 +289,10 @@ export function PixelDashboard() {
             • A edição da manhã tem <strong>{((stats.morning.total / stats.night.total) * 100 - 100).toFixed(1)}% mais leitores únicos</strong> do que a edição noturna.
           </p>
           <p>
-            • A edição noturna cresceu <strong>{stats.night.trend}%</strong> no período, mostrando boa aceitação.
+            • A edição de domingo alcança <strong>{stats.sunday.total.toLocaleString()} leitores únicos</strong> por edição, mostrando engajamento nos fins de semana.
           </p>
           <p>
-            • Quinta-feira é o melhor dia para ambas as edições, com maior engajamento geral.
+            • No total, o Pixel rastreia <strong>{(stats.morning.total + stats.night.total + stats.sunday.total).toLocaleString()} aberturas únicas</strong> no período.
           </p>
         </div>
       </Card>
