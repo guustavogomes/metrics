@@ -10,9 +10,6 @@ const pixelPool = new Pool({
   password: "waffle_secure_password_2024",
 });
 
-// Cache de 24 horas (86400 segundos)
-export const revalidate = 86400;
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -202,13 +199,20 @@ export async function GET(request: NextRequest) {
         comparisonData.night.before.avgUniqueReaders) * 100;
     }
 
-    return NextResponse.json({
-      stats,
-      dailyData,
-      weekdayData,
-      comparisonData,
-      nightLaunchDate,
-    });
+    return NextResponse.json(
+      {
+        stats,
+        dailyData,
+        weekdayData,
+        comparisonData,
+        nightLaunchDate,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=172800',
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching pixel stats:", error);
     return NextResponse.json(
