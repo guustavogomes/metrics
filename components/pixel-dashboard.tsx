@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  ReferenceLine,
 } from "recharts";
 
 interface PixelData {
@@ -39,6 +40,19 @@ interface PixelData {
   };
   dailyData: Array<{ date: string; morning: number; night: number; sunday: number }>;
   weekdayData: Array<{ day: string; morning: number; night: number; sunday: number }>;
+  comparisonData: {
+    morning: {
+      before: { avgUniqueReaders: number; totalDays: number };
+      after: { avgUniqueReaders: number; totalDays: number };
+      change: number;
+    };
+    night: {
+      before: { avgUniqueReaders: number; totalDays: number };
+      after: { avgUniqueReaders: number; totalDays: number };
+      change: number;
+    };
+  };
+  nightLaunchDate: string;
 }
 
 export function PixelDashboard() {
@@ -85,7 +99,7 @@ export function PixelDashboard() {
     );
   }
 
-  const { stats, dailyData, weekdayData } = data;
+  const { stats, dailyData, weekdayData, comparisonData, nightLaunchDate } = data;
 
   return (
     <div className="space-y-6">
@@ -198,6 +212,119 @@ export function PixelDashboard() {
         </Card>
       </div>
 
+      {/* Card de Impacto da Edição Noite */}
+      <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-purple-600" />
+            Impacto da Edição Noite
+          </h3>
+          <p className="text-sm text-slate-600 mt-1">
+            Comparação antes e depois do lançamento em julho 2025
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Edição Manhã - Comparação */}
+          <div className="bg-white rounded-lg p-4 border border-amber-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Sun className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-semibold text-amber-600">Edição Manhã</span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Antes (até Jun/2025):</span>
+                <span className="font-semibold text-slate-900">
+                  {comparisonData.morning.before.avgUniqueReaders.toLocaleString()} leitores/dia
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Depois (Jul/2025+):</span>
+                <span className="font-semibold text-slate-900">
+                  {comparisonData.morning.after.avgUniqueReaders.toLocaleString()} leitores/dia
+                </span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
+                <span className="text-slate-700 font-medium">Variação:</span>
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${
+                  comparisonData.morning.change >= 0
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  {comparisonData.morning.change >= 0 ? (
+                    <TrendingUp className="h-4 w-4" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" />
+                  )}
+                  <span className="font-semibold">
+                    {comparisonData.morning.change >= 0 ? '+' : ''}
+                    {comparisonData.morning.change.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Edição Noite - Comparação */}
+          <div className="bg-white rounded-lg p-4 border border-indigo-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Moon className="h-4 w-4 text-indigo-600" />
+              <span className="text-sm font-semibold text-indigo-600">Edição Noite</span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Antes (até Jun/2025):</span>
+                <span className="font-semibold text-slate-900">
+                  {comparisonData.night.before.avgUniqueReaders > 0
+                    ? `${comparisonData.night.before.avgUniqueReaders.toLocaleString()} leitores/dia`
+                    : 'Não existia'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Depois (Jul/2025+):</span>
+                <span className="font-semibold text-slate-900">
+                  {comparisonData.night.after.avgUniqueReaders.toLocaleString()} leitores/dia
+                </span>
+              </div>
+              <div className="pt-2 border-t border-slate-200">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <Activity className="h-4 w-4" />
+                  <span className="text-xs font-medium">
+                    Nova edição lançada em julho 2025
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Insights do Impacto */}
+        <div className="mt-4 p-3 bg-white/50 rounded-lg border border-purple-100">
+          <p className="text-sm text-slate-700">
+            <strong>Análise:</strong>{' '}
+            {comparisonData.morning.change < -5 ? (
+              <span className="text-red-700">
+                A edição manhã teve uma queda de {Math.abs(comparisonData.morning.change).toFixed(1)}% após o lançamento da edição noite,
+                indicando possível canibalização de audiência.
+              </span>
+            ) : comparisonData.morning.change > 5 ? (
+              <span className="text-green-700">
+                A edição manhã cresceu {comparisonData.morning.change.toFixed(1)}% após o lançamento da edição noite,
+                mostrando que as edições se complementam positivamente.
+              </span>
+            ) : (
+              <span className="text-blue-700">
+                A edição manhã manteve estabilidade ({comparisonData.morning.change >= 0 ? '+' : ''}{comparisonData.morning.change.toFixed(1)}%)
+                após o lançamento da edição noite, indicando que não houve impacto significativo.
+              </span>
+            )}
+          </p>
+        </div>
+      </Card>
+
       {/* Gráfico de Evolução Diária */}
       <Card className="p-6">
         <div className="mb-4">
@@ -248,6 +375,20 @@ export function PixelDashboard() {
               dot={{ r: 4 }}
               activeDot={{ r: 6 }}
               label={{ position: 'top', fill: '#10b981', fontSize: 11 }}
+            />
+            {/* Linha vertical marcando lançamento da edição noite */}
+            <ReferenceLine
+              x="01/07"
+              stroke="#9333ea"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              label={{
+                value: 'Lançamento Edição Noite',
+                position: 'top',
+                fill: '#9333ea',
+                fontSize: 11,
+                fontWeight: 'bold',
+              }}
             />
           </LineChart>
         </ResponsiveContainer>

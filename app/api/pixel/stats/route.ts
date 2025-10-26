@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const days = parseInt(searchParams.get("days") || "30");
 
+    // Data de lançamento da edição noite
+    const nightLaunchDate = '2025-07-01';
+
     // Query para estatísticas gerais
     const statsQuery = `
       SELECT
@@ -26,6 +29,22 @@ export async function GET(request: NextRequest) {
       JOIN posts_metadata pm ON pt.post_id = pm.post_id
       WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
       GROUP BY pm.edition_type
+    `;
+
+    // Query para comparação antes/depois do lançamento da edição noite
+    const comparisonQuery = `
+      SELECT
+        pm.edition_type,
+        CASE
+          WHEN pm.publish_date < '${nightLaunchDate}' THEN 'before'
+          ELSE 'after'
+        END as period,
+        COUNT(DISTINCT pt.email) as unique_readers,
+        COUNT(DISTINCT DATE(pt.first_open_at)) as days_count
+      FROM pixel_tracking_optimized pt
+      JOIN posts_metadata pm ON pt.post_id = pm.post_id
+      WHERE pm.publish_date IS NOT NULL
+      GROUP BY pm.edition_type, period
     `;
 
     // Query para evolução diária
@@ -56,10 +75,11 @@ export async function GET(request: NextRequest) {
       ORDER BY day_of_week
     `;
 
-    const [statsResult, dailyResult, weekdayResult] = await Promise.all([
+    const [statsResult, dailyResult, weekdayResult, comparisonResult] = await Promise.all([
       pixelPool.query(statsQuery),
       pixelPool.query(dailyQuery),
       pixelPool.query(weekdayQuery),
+      pixelPool.query(comparisonQuery),
     ]);
 
     // Processar estatísticas
@@ -130,10 +150,55 @@ export async function GET(request: NextRequest) {
 
     const weekdayData = Array.from(weekdayDataMap.values()); // Manter todos os dias incluindo domingo
 
+    // Processar dados de comparação antes/depois
+    const comparisonData = {
+      morning: {
+        before: { avgUniqueReaders: 0, totalDays: 0 },
+        after: { avgUniqueReaders: 0, totalDays: 0 },
+        change: 0,
+      },
+      night: {
+        before: { avgUniqueReaders: 0, totalDays: 0 },
+        after: { avgUniqueReaders: 0, totalDays: 0 },
+        change: 0,
+      },
+    };
+
+    comparisonResult.rows.forEach((row) => {
+      const edition = row.edition_type as 'morning' | 'night' | 'sunday';
+      const period = row.period as 'before' | 'after';
+
+      if (edition === 'morning' || edition === 'night') {
+        const uniqueReaders = parseInt(row.unique_readers);
+        const daysCount = parseInt(row.days_count);
+        const avgUniqueReaders = daysCount > 0 ? Math.round(uniqueReaders / daysCount) : 0;
+
+        comparisonData[edition][period] = {
+          avgUniqueReaders,
+          totalDays: daysCount,
+        };
+      }
+    });
+
+    // Calcular variação percentual
+    if (comparisonData.morning.before.avgUniqueReaders > 0) {
+      comparisonData.morning.change =
+        ((comparisonData.morning.after.avgUniqueReaders - comparisonData.morning.before.avgUniqueReaders) /
+        comparisonData.morning.before.avgUniqueReaders) * 100;
+    }
+
+    if (comparisonData.night.before.avgUniqueReaders > 0) {
+      comparisonData.night.change =
+        ((comparisonData.night.after.avgUniqueReaders - comparisonData.night.before.avgUniqueReaders) /
+        comparisonData.night.before.avgUniqueReaders) * 100;
+    }
+
     return NextResponse.json({
       stats,
       dailyData,
       weekdayData,
+      comparisonData,
+      nightLaunchDate,
     });
   } catch (error) {
     console.error("Error fetching pixel stats:", error);
