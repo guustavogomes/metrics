@@ -10,8 +10,8 @@ const pixelPool = new Pool({
   password: "waffle_secure_password_2024",
 });
 
-// Aumentar timeout para 60 segundos (requer Vercel Pro)
-export const maxDuration = 60;
+// Aumentar timeout para 300 segundos (5 minutos - máximo Vercel Pro)
+export const maxDuration = 300;
 
 // Função para calcular segundos até próximo domingo às 23:50
 function getSecondsUntilSundayNight(): number {
