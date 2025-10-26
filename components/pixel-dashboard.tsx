@@ -220,7 +220,7 @@ export function PixelDashboard() {
             Impacto da Edição Noite
           </h3>
           <p className="text-sm text-slate-600 mt-1">
-            Comparação antes e depois do lançamento em julho 2025
+            Evolução da audiência: primeiros meses (Ago-Set) vs últimos meses (Out+)
           </p>
         </div>
 
@@ -234,13 +234,13 @@ export function PixelDashboard() {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-600">Antes (até Jun/2025):</span>
+                <span className="text-slate-600">Ago-Set/2025:</span>
                 <span className="font-semibold text-slate-900">
                   {comparisonData.morning.before.avgUniqueReaders.toLocaleString()} leitores/dia
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Depois (Jul/2025+):</span>
+                <span className="text-slate-600">Out/2025+:</span>
                 <span className="font-semibold text-slate-900">
                   {comparisonData.morning.after.avgUniqueReaders.toLocaleString()} leitores/dia
                 </span>
@@ -275,25 +275,34 @@ export function PixelDashboard() {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-600">Antes (até Jun/2025):</span>
+                <span className="text-slate-600">Ago-Set/2025:</span>
                 <span className="font-semibold text-slate-900">
                   {comparisonData.night.before.avgUniqueReaders > 0
                     ? `${comparisonData.night.before.avgUniqueReaders.toLocaleString()} leitores/dia`
-                    : 'Não existia'
+                    : 'Dados insuficientes'
                   }
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Depois (Jul/2025+):</span>
+                <span className="text-slate-600">Out/2025+:</span>
                 <span className="font-semibold text-slate-900">
                   {comparisonData.night.after.avgUniqueReaders.toLocaleString()} leitores/dia
                 </span>
               </div>
               <div className="pt-2 border-t border-slate-200">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <Activity className="h-4 w-4" />
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${
+                  comparisonData.night.change >= 0
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  {comparisonData.night.change >= 0 ? (
+                    <TrendingUp className="h-4 w-4" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4" />
+                  )}
                   <span className="text-xs font-medium">
-                    Nova edição lançada em julho 2025
+                    {comparisonData.night.change >= 0 ? '+' : ''}
+                    {comparisonData.night.change.toFixed(1)}% de evolução
                   </span>
                 </div>
               </div>
@@ -307,18 +316,18 @@ export function PixelDashboard() {
             <strong>Análise:</strong>{' '}
             {comparisonData.morning.change < -5 ? (
               <span className="text-red-700">
-                A edição manhã teve uma queda de {Math.abs(comparisonData.morning.change).toFixed(1)}% após o lançamento da edição noite,
-                indicando possível canibalização de audiência.
+                A edição manhã teve uma queda de {Math.abs(comparisonData.morning.change).toFixed(1)}% nos últimos meses,
+                indicando possível migração de audiência para a edição noite ou redução geral de engajamento.
               </span>
             ) : comparisonData.morning.change > 5 ? (
               <span className="text-green-700">
-                A edição manhã cresceu {comparisonData.morning.change.toFixed(1)}% após o lançamento da edição noite,
-                mostrando que as edições se complementam positivamente.
+                A edição manhã cresceu {comparisonData.morning.change.toFixed(1)}% nos últimos meses,
+                mostrando que as duas edições se complementam e expandem a audiência total.
               </span>
             ) : (
               <span className="text-blue-700">
                 A edição manhã manteve estabilidade ({comparisonData.morning.change >= 0 ? '+' : ''}{comparisonData.morning.change.toFixed(1)}%)
-                após o lançamento da edição noite, indicando que não houve impacto significativo.
+                ao longo do período, indicando que a edição noite atingiu um público diferente ou adicional.
               </span>
             )}
           </p>
@@ -376,14 +385,14 @@ export function PixelDashboard() {
               activeDot={{ r: 6 }}
               label={{ position: 'top', fill: '#10b981', fontSize: 11 }}
             />
-            {/* Linha vertical marcando lançamento da edição noite */}
+            {/* Linha vertical marcando início do segundo período de análise */}
             <ReferenceLine
-              x="01/07"
+              x="01/10"
               stroke="#9333ea"
               strokeWidth={2}
               strokeDasharray="5 5"
               label={{
-                value: 'Lançamento Edição Noite',
+                value: 'Outubro - Novo Período',
                 position: 'top',
                 fill: '#9333ea',
                 fontSize: 11,

@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const days = parseInt(searchParams.get("days") || "30");
 
-    // Data de lançamento da edição noite
+    // Data de início dos dados (agosto 2025)
+    const dataStartDate = '2025-08-01';
+    // Data de lançamento da edição noite (julho 2025)
     const nightLaunchDate = '2025-07-01';
 
     // Query para estatísticas gerais
@@ -28,15 +30,16 @@ export async function GET(request: NextRequest) {
       FROM pixel_tracking_optimized pt
       JOIN posts_metadata pm ON pt.post_id = pm.post_id
       WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+        AND pt.first_open_at >= '${dataStartDate}'
       GROUP BY pm.edition_type
     `;
 
-    // Query para comparação antes/depois do lançamento da edição noite
+    // Query para comparação: primeiros 2 meses vs últimos 2 meses (desde agosto/2025)
     const comparisonQuery = `
       SELECT
         pm.edition_type,
         CASE
-          WHEN pm.publish_date < '${nightLaunchDate}' THEN 'before'
+          WHEN pm.publish_date < '2025-10-01' THEN 'before'
           ELSE 'after'
         END as period,
         COUNT(DISTINCT pt.email) as unique_readers,
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
       FROM pixel_tracking_optimized pt
       JOIN posts_metadata pm ON pt.post_id = pm.post_id
       WHERE pm.publish_date IS NOT NULL
+        AND pm.publish_date >= '${dataStartDate}'
       GROUP BY pm.edition_type, period
     `;
 
@@ -57,6 +61,7 @@ export async function GET(request: NextRequest) {
       FROM pixel_tracking_optimized pt
       JOIN posts_metadata pm ON pt.post_id = pm.post_id
       WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+        AND pt.first_open_at >= '${dataStartDate}'
       GROUP BY DATE(pt.first_open_at), pm.edition_type
       ORDER BY date
     `;
@@ -71,6 +76,7 @@ export async function GET(request: NextRequest) {
       FROM pixel_tracking_optimized pt
       JOIN posts_metadata pm ON pt.post_id = pm.post_id
       WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+        AND pt.first_open_at >= '${dataStartDate}'
       GROUP BY EXTRACT(DOW FROM pt.first_open_at), pm.edition_type
       ORDER BY day_of_week
     `;
