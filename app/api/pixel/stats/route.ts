@@ -10,6 +10,24 @@ const pixelPool = new Pool({
   password: "waffle_secure_password_2024",
 });
 
+// Função para calcular segundos até próximo domingo às 23:50
+function getSecondsUntilSundayNight(): number {
+  const now = new Date();
+  const nextSunday = new Date(now);
+
+  // Calcular próximo domingo
+  const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+  nextSunday.setDate(now.getDate() + daysUntilSunday);
+  nextSunday.setHours(23, 50, 0, 0);
+
+  // Se já passou das 23:50 de domingo, pegar próximo domingo
+  if (nextSunday <= now) {
+    nextSunday.setDate(nextSunday.getDate() + 7);
+  }
+
+  return Math.floor((nextSunday.getTime() - now.getTime()) / 1000);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -199,6 +217,10 @@ export async function GET(request: NextRequest) {
         comparisonData.night.before.avgUniqueReaders) * 100;
     }
 
+    // Calcular cache até próximo domingo 23:50
+    const maxAge = getSecondsUntilSundayNight();
+    const staleWhileRevalidate = maxAge + 86400; // +24h após expirar
+
     return NextResponse.json(
       {
         stats,
@@ -209,7 +231,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=172800',
+          'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
         },
       }
     );
