@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+// Aumentar timeout para 300 segundos (5 minutos - máximo Vercel Pro)
+export const maxDuration = 300;
+
+// Função para calcular segundos até próximo domingo às 23:50
+function getSecondsUntilSundayNight(): number {
+  const now = new Date();
+  const nextSunday = new Date(now);
+
+  // Calcular próximo domingo
+  const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+  nextSunday.setDate(now.getDate() + daysUntilSunday);
+  nextSunday.setHours(23, 50, 0, 0);
+
+  // Se já passou das 23:50 de domingo, pegar próximo domingo
+  if (nextSunday <= now) {
+    nextSunday.setDate(nextSunday.getDate() + 7);
+  }
+
+  return Math.floor((nextSunday.getTime() - now.getTime()) / 1000);
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -154,7 +175,15 @@ export async function GET() {
       clickRate: parseFloat(avgClickRate),
     };
 
-    return NextResponse.json(data);
+    // Calcular cache até próximo domingo 23:50
+    const maxAge = getSecondsUntilSundayNight();
+    const staleWhileRevalidate = maxAge + 86400; // +24h após expirar
+
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+      },
+    });
   } catch (error) {
     console.error("Erro ao buscar overview do dashboard:", error);
     return NextResponse.json(
