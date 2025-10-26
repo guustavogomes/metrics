@@ -10,6 +10,9 @@ const pixelPool = new Pool({
   password: "waffle_secure_password_2024",
 });
 
+// Cache de 24 horas (86400 segundos)
+export const revalidate = 86400;
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
