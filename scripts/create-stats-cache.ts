@@ -26,8 +26,8 @@ async function createStatsCache() {
     `);
     console.log("✅ Tabela criada!");
 
-    // 2. Pré-calcular para 30, 60 e 90 dias
-    const periods = [30, 60, 90];
+    // 2. Pré-calcular para 7, 30, 60 e 90 dias
+    const periods = [7, 30, 60, 90];
 
     for (const days of periods) {
       console.log(`\n2️⃣ Calculando estatísticas para ${days} dias...`);

@@ -122,7 +122,7 @@ npx tsx scripts/create-optimized-indexes.ts
 
 1. **Cache da Vercel**: A API usa cache HTTP que expira todo domingo às 23:50
 2. **Atualização**: Execute o script de atualização **antes** do cache expirar
-3. **Períodos Suportados**: 30, 60 e 90 dias (definidos em `pixel_stats_cache`)
+3. **Períodos Suportados**: 7, 30, 60 e 90 dias (definidos em `pixel_stats_cache`)
 4. **Dados Históricos**: Começam em 2025-08-01
 
 ## 🚀 Scripts Disponíveis

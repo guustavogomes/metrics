@@ -47,8 +47,8 @@ async function weeklyUpdateCache() {
     const dailyDuration = Date.now() - dailyStart;
     console.log(`   ✅ Concluído em ${(dailyDuration / 1000).toFixed(2)}s`);
 
-    // 2. Atualizar cache de estatísticas para 30, 60 e 90 dias
-    const periods = [30, 60, 90];
+    // 2. Atualizar cache de estatísticas para 7, 30, 60 e 90 dias
+    const periods = [7, 30, 60, 90];
 
     for (const days of periods) {
       console.log(`\n2️⃣ Atualizando pixel_stats_cache (${days} dias)...`);
