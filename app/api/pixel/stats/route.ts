@@ -41,64 +41,55 @@ export async function GET(request: NextRequest) {
     // Data de lançamento da edição noite (julho 2025)
     const nightLaunchDate = '2025-07-01';
 
-    // Query para estatísticas gerais
+    // Query super otimizada usando cache pré-calculado
     const statsQuery = `
       SELECT
-        pm.edition_type,
-        COUNT(DISTINCT pt.email) as unique_readers,
-        SUM(pt.open_count) as total_opens,
-        AVG(pt.open_count) as avg_opens_per_reader
-      FROM pixel_tracking_optimized pt
-      JOIN posts_metadata pm ON pt.post_id = pm.post_id
-      WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
-        AND pt.first_open_at >= '${dataStartDate}'
-      GROUP BY pm.edition_type
+        edition_type,
+        unique_readers,
+        total_opens
+      FROM pixel_stats_cache
+      WHERE period_days = ${days}
     `;
 
-    // Query para comparação: primeiros 2 meses vs últimos 2 meses (desde agosto/2025)
+    // Query otimizada usando tabela de agregação para comparação
     const comparisonQuery = `
       SELECT
-        pm.edition_type,
+        edition_type,
         CASE
-          WHEN pm.publish_date < '2025-10-01' THEN 'before'
+          WHEN date < '2025-10-01' THEN 'before'
           ELSE 'after'
         END as period,
-        COUNT(DISTINCT pt.email) as unique_readers,
-        COUNT(DISTINCT DATE(pt.first_open_at)) as days_count
-      FROM pixel_tracking_optimized pt
-      JOIN posts_metadata pm ON pt.post_id = pm.post_id
-      WHERE pm.publish_date IS NOT NULL
-        AND pm.publish_date >= '${dataStartDate}'
-      GROUP BY pm.edition_type, period
+        SUM(unique_readers) as unique_readers,
+        COUNT(DISTINCT date) as days_count
+      FROM pixel_daily_stats
+      WHERE date >= '${dataStartDate}'::date
+      GROUP BY edition_type, period
     `;
 
-    // Query para evolução diária
+    // Query otimizada usando tabela de agregação diária
     const dailyQuery = `
       SELECT
-        DATE(pt.first_open_at) as date,
-        pm.edition_type,
-        COUNT(DISTINCT pt.email) as unique_readers,
-        SUM(pt.open_count) as total_opens
-      FROM pixel_tracking_optimized pt
-      JOIN posts_metadata pm ON pt.post_id = pm.post_id
-      WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
-        AND pt.first_open_at >= '${dataStartDate}'
-      GROUP BY DATE(pt.first_open_at), pm.edition_type
+        date,
+        edition_type,
+        unique_readers,
+        total_opens
+      FROM pixel_daily_stats
+      WHERE date >= NOW() - INTERVAL '${days} days'
+        AND date >= '${dataStartDate}'::date
       ORDER BY date
     `;
 
-    // Query para estatísticas por dia da semana
+    // Query otimizada usando tabela de agregação diária
     const weekdayQuery = `
       SELECT
-        EXTRACT(DOW FROM pt.first_open_at) as day_of_week,
-        pm.edition_type,
-        COUNT(DISTINCT pt.email) as unique_readers,
-        SUM(pt.open_count) as total_opens
-      FROM pixel_tracking_optimized pt
-      JOIN posts_metadata pm ON pt.post_id = pm.post_id
-      WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
-        AND pt.first_open_at >= '${dataStartDate}'
-      GROUP BY EXTRACT(DOW FROM pt.first_open_at), pm.edition_type
+        day_of_week,
+        edition_type,
+        SUM(unique_readers) as unique_readers,
+        SUM(total_opens) as total_opens
+      FROM pixel_daily_stats
+      WHERE date >= NOW() - INTERVAL '${days} days'
+        AND date >= '${dataStartDate}'::date
+      GROUP BY day_of_week, edition_type
       ORDER BY day_of_week
     `;
 
