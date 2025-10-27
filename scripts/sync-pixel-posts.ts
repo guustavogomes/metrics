@@ -177,6 +177,29 @@ async function syncPixelPosts() {
     console.log(`✅ Synced: ${synced}`);
     console.log(`⏭️  Skipped: ${skipped}`);
     console.log(`❌ Errors: ${errors}`);
+
+    // Atualizar caches se houve sincronizações bem-sucedidas
+    if (synced > 0) {
+      console.log('\n🔄 Updating pixel caches...');
+      const { updatePixelCaches } = await import('../lib/update-pixel-caches');
+
+      try {
+        const result = await updatePixelCaches({
+          pool: pixelPool,
+          verbose: true,
+        });
+
+        if (result.success) {
+          console.log(`\n✅ Caches updated successfully in ${(result.duration / 1000).toFixed(2)}s`);
+        } else {
+          console.warn(`\n⚠️  Some caches failed to update`);
+        }
+      } catch (error) {
+        console.error('\n❌ Error updating caches:', error);
+        console.log('⚠️  Sync completed but caches need manual update');
+        console.log('   Run: npx tsx scripts/weekly-cache-update.ts');
+      }
+    }
   } catch (error) {
     console.error('❌ Fatal error:', error);
   } finally {
