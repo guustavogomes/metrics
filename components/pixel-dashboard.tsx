@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Sun, Moon, TrendingUp, TrendingDown, Activity, Calendar } from "lucide-react";
+import { Sun, Moon, TrendingUp, TrendingDown, Activity, Calendar, Download } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -69,6 +69,30 @@ export function PixelDashboard() {
   const [data, setData] = useState<PixelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingOverlap, setExportingOverlap] = useState(false);
+
+  const handleExportOverlap = async () => {
+    try {
+      setExportingOverlap(true);
+      const response = await fetch(`/api/pixel/export-overlap?days=${dateRange}`);
+      if (!response.ok) throw new Error("Failed to export data");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `overlap-readers-${dateRange}days-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      alert('Erro ao exportar dados. Tente novamente.');
+    } finally {
+      setExportingOverlap(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -346,14 +370,24 @@ export function PixelDashboard() {
       {/* Card de Sobreposição de Leitores */}
       {overlapData && (
         <Card className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-indigo-600" />
-              Sobreposição de Leitores: Manhã vs Noite
-            </h3>
-            <p className="text-sm text-slate-600 mt-1">
-              Análise de quantos leitores acompanham ambas as edições
-            </p>
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Activity className="h-5 w-5 text-indigo-600" />
+                Sobreposição de Leitores: Manhã vs Noite
+              </h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Análise de quantos leitores acompanham ambas as edições
+              </p>
+            </div>
+            <button
+              onClick={handleExportOverlap}
+              disabled={exportingOverlap}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            >
+              <Download className="h-4 w-4" />
+              {exportingOverlap ? 'Exportando...' : 'Exportar CSV'}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
