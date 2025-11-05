@@ -64,9 +64,50 @@ interface PixelData {
   nightLaunchDate: string;
 }
 
+interface OverlapRevenueData {
+  period: number;
+  overlap: {
+    both: {
+      users: number;
+      totalOpens: number;
+      avgOpensPerUser: number;
+      revenue: number;
+      ltv: number;
+      revenuePerOpen: number;
+      percentageOfUsers: number;
+    };
+    morningOnly: {
+      users: number;
+      totalOpens: number;
+      avgOpensPerUser: number;
+      revenue: number;
+      ltv: number;
+      revenuePerOpen: number;
+      percentageOfUsers: number;
+    };
+    nightOnly: {
+      users: number;
+      totalOpens: number;
+      avgOpensPerUser: number;
+      revenue: number;
+      ltv: number;
+      revenuePerOpen: number;
+      percentageOfUsers: number;
+    };
+  };
+  totals: {
+    totalUniqueUsers: number;
+    totalOpens: number;
+    totalRevenue: number;
+    avgRevenuePerUser: number;
+    avgRevenuePerOpen: number;
+  };
+}
+
 export function PixelDashboard() {
   const [dateRange, setDateRange] = useState("7");
   const [data, setData] = useState<PixelData | null>(null);
+  const [overlapRevenue, setOverlapRevenue] = useState<OverlapRevenueData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exportingOverlap, setExportingOverlap] = useState(false);
@@ -98,10 +139,19 @@ export function PixelDashboard() {
     async function fetchData() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/pixel/stats?days=${dateRange}`);
-        if (!response.ok) throw new Error("Failed to fetch data");
-        const result = await response.json();
-        setData(result);
+        const [statsResponse, overlapRevenueResponse] = await Promise.all([
+          fetch(`/api/pixel/stats?days=${dateRange}`),
+          fetch(`/api/pixel/overlap-revenue?days=${dateRange}`),
+        ]);
+        
+        if (!statsResponse.ok) throw new Error("Failed to fetch stats");
+        if (!overlapRevenueResponse.ok) throw new Error("Failed to fetch overlap revenue");
+        
+        const stats = await statsResponse.json();
+        const overlapRev = await overlapRevenueResponse.json();
+        
+        setData(stats);
+        setOverlapRevenue(overlapRev);
         setError(null);
       } catch (err) {
         setError("Erro ao carregar dados");
@@ -463,6 +513,161 @@ export function PixelDashboard() {
                 </span>
               )}
             </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Métricas Avançadas: LTV e Receita por Abertura */}
+      {overlapRevenue && overlapData && (
+        <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              💰 Métricas de Monetização por Tipo de Leitor
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              LTV, receita por abertura e engagement por grupo
+            </p>
+          </div>
+
+          {/* Cards de LTV */}
+          <div className="mb-6">
+            <h4 className="text-md font-semibold text-slate-800 mb-3">💵 LTV por Usuário</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* LTV - Leem AMBAS */}
+              <div className="bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg p-4 border border-purple-300">
+                <div className="text-sm font-medium text-purple-700 mb-1">🔄 Leem AMBAS</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.both.ltv)}
+                </div>
+                <div className="text-xs text-purple-600 mt-1">
+                  {overlapRevenue.overlap.both.percentageOfUsers.toFixed(0)}% dos usuários
+                </div>
+              </div>
+
+              {/* LTV - Apenas Manhã */}
+              <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg p-4 border border-amber-300">
+                <div className="text-sm font-medium text-amber-700 mb-1">🌅 Apenas Manhã</div>
+                <div className="text-2xl font-bold text-amber-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.morningOnly.ltv)}
+                </div>
+                <div className="text-xs text-amber-600 mt-1">
+                  {overlapRevenue.overlap.morningOnly.percentageOfUsers.toFixed(0)}% dos usuários
+                </div>
+              </div>
+
+              {/* LTV - Apenas Noite */}
+              <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg p-4 border border-indigo-300">
+                <div className="text-sm font-medium text-indigo-700 mb-1">🌙 Apenas Noite</div>
+                <div className="text-2xl font-bold text-indigo-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.nightOnly.ltv)}
+                </div>
+                <div className="text-xs text-indigo-600 mt-1">
+                  {overlapRevenue.overlap.nightOnly.percentageOfUsers.toFixed(0)}% dos usuários
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cards de Receita por Abertura */}
+          <div className="mb-6">
+            <h4 className="text-md font-semibold text-slate-800 mb-3">📧 Receita por Abertura</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Receita/Open - Leem AMBAS */}
+              <div className="bg-white rounded-lg p-4 border-2 border-purple-200">
+                <div className="text-sm font-medium text-purple-700 mb-1">🔄 Leem AMBAS</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.both.revenuePerOpen)}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  {overlapRevenue.overlap.both.avgOpensPerUser.toFixed(1)} aberturas/usuário
+                </div>
+              </div>
+
+              {/* Receita/Open - Apenas Manhã */}
+              <div className="bg-white rounded-lg p-4 border-2 border-amber-200">
+                <div className="text-sm font-medium text-amber-700 mb-1">🌅 Apenas Manhã</div>
+                <div className="text-2xl font-bold text-amber-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.morningOnly.revenuePerOpen)}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  {overlapRevenue.overlap.morningOnly.avgOpensPerUser.toFixed(1)} aberturas/usuário
+                </div>
+              </div>
+
+              {/* Receita/Open - Apenas Noite */}
+              <div className="bg-white rounded-lg p-4 border-2 border-indigo-200">
+                <div className="text-sm font-medium text-indigo-700 mb-1">🌙 Apenas Noite</div>
+                <div className="text-2xl font-bold text-indigo-900">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overlapRevenue.overlap.nightOnly.revenuePerOpen)}
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  {overlapRevenue.overlap.nightOnly.avgOpensPerUser.toFixed(1)} aberturas/usuário
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Estatísticas Detalhadas */}
+          <div>
+            <h4 className="text-md font-semibold text-slate-800 mb-3">📊 Estatísticas Detalhadas</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Leem AMBAS */}
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <div className="font-semibold text-purple-700 mb-2">🔄 Leem AMBAS</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Usuários:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.both.users.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas totais:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.both.totalOpens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas/usuário:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.both.avgOpensPerUser.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Apenas Manhã */}
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <div className="font-semibold text-amber-700 mb-2">🌅 Apenas Manhã</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Usuários:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.morningOnly.users.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas totais:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.morningOnly.totalOpens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas/usuário:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.morningOnly.avgOpensPerUser.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Apenas Noite */}
+              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                <div className="font-semibold text-indigo-700 mb-2">🌙 Apenas Noite</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Usuários:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.nightOnly.users.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas totais:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.nightOnly.totalOpens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Aberturas/usuário:</span>
+                    <span className="font-semibold">{overlapRevenue.overlap.nightOnly.avgOpensPerUser.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
       )}
