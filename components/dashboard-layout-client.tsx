@@ -9,7 +9,8 @@ import {
   BarChart3,
   Menu,
   X,
-  Eye
+  Eye,
+  DollarSign
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Publicações", href: "/publications", icon: Newspaper },
   { name: "Pixel", href: "/pixel", icon: Eye },
+  { name: "Monetização", href: "/revenue", icon: DollarSign },
 ];
 
 export default function DashboardLayoutClient({
