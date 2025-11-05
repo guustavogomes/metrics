@@ -367,7 +367,9 @@ export function PixelDashboard() {
                 {overlapData.morningOnlyCount.toLocaleString()}
               </div>
               <div className="text-sm text-slate-600 mt-1">
-                {((overlapData.morningOnlyCount / overlapData.morningUnique) * 100).toFixed(1)}% dos leitores da manhã
+                {overlapData.morningUnique > 0 
+                  ? ((overlapData.morningOnlyCount / overlapData.morningUnique) * 100).toFixed(1) 
+                  : '0.0'}% dos leitores da manhã
               </div>
             </div>
 
@@ -395,7 +397,9 @@ export function PixelDashboard() {
                 {overlapData.nightOnlyCount.toLocaleString()}
               </div>
               <div className="text-sm text-slate-600 mt-1">
-                {((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1)}% dos leitores da noite
+                {overlapData.nightUnique > 0 
+                  ? ((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1) 
+                  : '0.0'}% dos leitores da noite
               </div>
             </div>
           </div>
@@ -408,7 +412,9 @@ export function PixelDashboard() {
                 <span className="text-purple-700">
                   Quase todos os leitores da noite ({overlapData.overlapPctNight.toFixed(1)}%) também leem a edição da manhã,
                   indicando alta fidelidade da audiência. Apenas {overlapData.nightOnlyCount.toLocaleString()} leitores
-                  ({((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1)}%)
+                  ({overlapData.nightUnique > 0 
+                    ? ((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1) 
+                    : '0.0'}%)
                   leem exclusivamente a edição noturna.
                 </span>
               ) : overlapData.overlapPctNight > 70 ? (

@@ -39,8 +39,8 @@ async function testOverlap() {
         (SELECT COUNT(*) FROM morning_readers) as morning_unique,
         (SELECT COUNT(*) FROM night_readers) as night_unique,
         o.overlap_count,
-        ROUND((o.overlap_count::numeric / (SELECT COUNT(*) FROM morning_readers)::numeric) * 100, 2) as overlap_pct_morning,
-        ROUND((o.overlap_count::numeric / (SELECT COUNT(*) FROM night_readers)::numeric) * 100, 2) as overlap_pct_night
+        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM morning_readers), 0)::numeric) * 100, 2) as overlap_pct_morning,
+        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM night_readers), 0)::numeric) * 100, 2) as overlap_pct_night
       FROM overlap o;
     `;
 
