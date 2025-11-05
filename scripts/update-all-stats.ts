@@ -70,6 +70,18 @@ async function updateAllStats() {
       });
     }
 
+    // Overlap Cache por período
+    if (result.overlapCache?.periods) {
+      console.log("\n🔄 pixel_overlap_cache:");
+      result.overlapCache.periods.forEach(period => {
+        if (period.updated) {
+          console.log(`   ✅ ${period.days} dias: ${(period.duration / 1000).toFixed(2)}s`);
+        } else {
+          console.log(`   ❌ ${period.days} dias: ERRO - ${period.error}`);
+        }
+      });
+    }
+
     console.log(`\n⏱️  Tempo total: ${(totalDuration / 1000 / 60).toFixed(2)} minutos`);
     console.log(`📅 Finalizado em: ${new Date().toLocaleString('pt-BR')}`);
 

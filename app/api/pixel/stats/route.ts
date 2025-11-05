@@ -93,36 +93,18 @@ export async function GET(request: NextRequest) {
       ORDER BY day_of_week
     `;
 
-    // Query para calcular sobreposição entre manhã e noite
+    // Query super otimizada usando cache pré-calculado de overlap
     const overlapQuery = `
-      WITH morning_readers AS (
-        SELECT DISTINCT pt.email
-        FROM pixel_tracking_optimized pt
-        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
-        WHERE pm.edition_type = 'morning'
-          AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
-          AND pt.first_open_at >= '${dataStartDate}'::timestamp
-      ),
-      night_readers AS (
-        SELECT DISTINCT pt.email
-        FROM pixel_tracking_optimized pt
-        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
-        WHERE pm.edition_type = 'night'
-          AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
-          AND pt.first_open_at >= '${dataStartDate}'::timestamp
-      ),
-      overlap AS (
-        SELECT COUNT(*) as overlap_count
-        FROM morning_readers mr
-        INNER JOIN night_readers nr ON mr.email = nr.email
-      )
       SELECT
-        (SELECT COUNT(*) FROM morning_readers) as morning_unique,
-        (SELECT COUNT(*) FROM night_readers) as night_unique,
-        o.overlap_count,
-        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM morning_readers), 0)::numeric) * 100, 2) as overlap_pct_morning,
-        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM night_readers), 0)::numeric) * 100, 2) as overlap_pct_night
-      FROM overlap o;
+        morning_unique,
+        night_unique,
+        overlap_count,
+        overlap_pct_morning,
+        overlap_pct_night,
+        morning_only_count,
+        night_only_count
+      FROM pixel_overlap_cache
+      WHERE period_days = ${days}
     `;
 
     const [statsResult, dailyResult, weekdayResult, comparisonResult, overlapResult] = await Promise.all([
@@ -244,7 +226,7 @@ export async function GET(request: NextRequest) {
         comparisonData.night.before.avgUniqueReaders) * 100;
     }
 
-    // Processar dados de sobreposição
+    // Processar dados de sobreposição (já vem calculado do cache)
     const overlapData = overlapResult.rows[0]
       ? {
           morningUnique: parseInt(overlapResult.rows[0].morning_unique),
@@ -252,8 +234,8 @@ export async function GET(request: NextRequest) {
           overlapCount: parseInt(overlapResult.rows[0].overlap_count),
           overlapPctMorning: parseFloat(overlapResult.rows[0].overlap_pct_morning) || 0,
           overlapPctNight: parseFloat(overlapResult.rows[0].overlap_pct_night) || 0,
-          morningOnlyCount: parseInt(overlapResult.rows[0].morning_unique) - parseInt(overlapResult.rows[0].overlap_count),
-          nightOnlyCount: parseInt(overlapResult.rows[0].night_unique) - parseInt(overlapResult.rows[0].overlap_count),
+          morningOnlyCount: parseInt(overlapResult.rows[0].morning_only_count),
+          nightOnlyCount: parseInt(overlapResult.rows[0].night_only_count),
         }
       : null;
 

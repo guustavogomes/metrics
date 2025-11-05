@@ -10,6 +10,7 @@ export interface UpdateCachesOptions {
   periods?: number[]; // Períodos em dias para atualizar (padrão: 7, 30, 60, 90)
   updateDaily?: boolean; // Se deve atualizar pixel_daily_stats (padrão: true)
   updateStats?: boolean; // Se deve atualizar pixel_stats_cache (padrão: true)
+  updateOverlap?: boolean; // Se deve atualizar pixel_overlap_cache (padrão: true)
   daysToUpdate?: number; // Quantos dias atualizar no daily_stats (padrão: 90)
   verbose?: boolean; // Logs detalhados (padrão: false)
 }
@@ -30,6 +31,14 @@ export interface UpdateCachesResult {
       error?: string;
     }[];
   };
+  overlapCache?: {
+    periods: {
+      days: number;
+      updated: boolean;
+      duration: number;
+      error?: string;
+    }[];
+  };
 }
 
 export async function updatePixelCaches(
@@ -40,6 +49,7 @@ export async function updatePixelCaches(
     periods = [7, 30, 60, 90],
     updateDaily = true,
     updateStats = true,
+    updateOverlap = true,
     daysToUpdate = 90,
     verbose = false,
   } = options;
@@ -143,6 +153,107 @@ export async function updatePixelCaches(
             days,
             updated: false,
             duration: Date.now() - statsStart,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          if (verbose) console.error(`   ❌ Erro no período ${days} dias:`, error);
+        }
+      }
+    }
+
+    // 3. Atualizar pixel_overlap_cache para cada período
+    if (updateOverlap) {
+      result.overlapCache = { periods: [] };
+
+      for (const days of periods) {
+        if (verbose) console.log(`\n🔄 Atualizando pixel_overlap_cache (${days} dias)...`);
+        const overlapStart = Date.now();
+
+        try {
+          const overlapQuery = `
+            WITH morning_readers AS (
+              SELECT DISTINCT pt.email
+              FROM pixel_tracking_optimized pt
+              INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+              WHERE pm.edition_type = 'morning'
+                AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+                AND pt.first_open_at >= '2025-08-01'::timestamp
+            ),
+            night_readers AS (
+              SELECT DISTINCT pt.email
+              FROM pixel_tracking_optimized pt
+              INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+              WHERE pm.edition_type = 'night'
+                AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+                AND pt.first_open_at >= '2025-08-01'::timestamp
+            ),
+            overlap AS (
+              SELECT COUNT(*) as overlap_count
+              FROM morning_readers mr
+              INNER JOIN night_readers nr ON mr.email = nr.email
+            )
+            SELECT
+              (SELECT COUNT(*) FROM morning_readers) as morning_unique,
+              (SELECT COUNT(*) FROM night_readers) as night_unique,
+              o.overlap_count,
+              ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM morning_readers), 0)::numeric) * 100, 2) as overlap_pct_morning,
+              ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM night_readers), 0)::numeric) * 100, 2) as overlap_pct_night,
+              (SELECT COUNT(*) FROM morning_readers) - o.overlap_count as morning_only_count,
+              (SELECT COUNT(*) FROM night_readers) - o.overlap_count as night_only_count
+            FROM overlap o;
+          `;
+
+          const overlapResult = await pixelPool.query(overlapQuery);
+          const row = overlapResult.rows[0];
+
+          if (row) {
+            await pixelPool.query(
+              `INSERT INTO pixel_overlap_cache (
+                period_days, 
+                morning_unique, 
+                night_unique, 
+                overlap_count,
+                overlap_pct_morning,
+                overlap_pct_night,
+                morning_only_count,
+                night_only_count,
+                updated_at
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+              ON CONFLICT (period_days) 
+              DO UPDATE SET
+                morning_unique = EXCLUDED.morning_unique,
+                night_unique = EXCLUDED.night_unique,
+                overlap_count = EXCLUDED.overlap_count,
+                overlap_pct_morning = EXCLUDED.overlap_pct_morning,
+                overlap_pct_night = EXCLUDED.overlap_pct_night,
+                morning_only_count = EXCLUDED.morning_only_count,
+                night_only_count = EXCLUDED.night_only_count,
+                updated_at = NOW()`,
+              [
+                days,
+                row.morning_unique,
+                row.night_unique,
+                row.overlap_count,
+                row.overlap_pct_morning,
+                row.overlap_pct_night,
+                row.morning_only_count,
+                row.night_only_count,
+              ]
+            );
+          }
+
+          const overlapDuration = Date.now() - overlapStart;
+          result.overlapCache.periods.push({
+            days,
+            updated: true,
+            duration: overlapDuration,
+          });
+          if (verbose) console.log(`   ✅ ${days} dias: ${(overlapDuration / 1000).toFixed(2)}s`);
+        } catch (error) {
+          result.overlapCache.periods.push({
+            days,
+            updated: false,
+            duration: Date.now() - overlapStart,
             error: error instanceof Error ? error.message : String(error),
           });
           if (verbose) console.error(`   ❌ Erro no período ${days} dias:`, error);
