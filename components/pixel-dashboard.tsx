@@ -518,7 +518,7 @@ export function PixelDashboard() {
       )}
 
       {/* Métricas Avançadas: LTV e Receita por Abertura */}
-      {overlapRevenue && overlapData && (
+      {overlapRevenue && (
         <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
