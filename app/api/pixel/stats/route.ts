@@ -93,11 +93,44 @@ export async function GET(request: NextRequest) {
       ORDER BY day_of_week
     `;
 
-    const [statsResult, dailyResult, weekdayResult, comparisonResult] = await Promise.all([
+    // Query para calcular sobreposição entre manhã e noite
+    const overlapQuery = `
+      WITH morning_readers AS (
+        SELECT DISTINCT pt.email
+        FROM pixel_tracking_optimized pt
+        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+        WHERE pm.edition_type = 'morning'
+          AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          AND pt.first_open_at >= '${dataStartDate}'::timestamp
+      ),
+      night_readers AS (
+        SELECT DISTINCT pt.email
+        FROM pixel_tracking_optimized pt
+        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+        WHERE pm.edition_type = 'night'
+          AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          AND pt.first_open_at >= '${dataStartDate}'::timestamp
+      ),
+      overlap AS (
+        SELECT COUNT(*) as overlap_count
+        FROM morning_readers mr
+        INNER JOIN night_readers nr ON mr.email = nr.email
+      )
+      SELECT
+        (SELECT COUNT(*) FROM morning_readers) as morning_unique,
+        (SELECT COUNT(*) FROM night_readers) as night_unique,
+        o.overlap_count,
+        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM morning_readers), 0)::numeric) * 100, 2) as overlap_pct_morning,
+        ROUND((o.overlap_count::numeric / NULLIF((SELECT COUNT(*) FROM night_readers), 0)::numeric) * 100, 2) as overlap_pct_night
+      FROM overlap o;
+    `;
+
+    const [statsResult, dailyResult, weekdayResult, comparisonResult, overlapResult] = await Promise.all([
       pixelPool.query(statsQuery),
       pixelPool.query(dailyQuery),
       pixelPool.query(weekdayQuery),
       pixelPool.query(comparisonQuery),
+      pixelPool.query(overlapQuery),
     ]);
 
     // Processar estatísticas
@@ -211,6 +244,19 @@ export async function GET(request: NextRequest) {
         comparisonData.night.before.avgUniqueReaders) * 100;
     }
 
+    // Processar dados de sobreposição
+    const overlapData = overlapResult.rows[0]
+      ? {
+          morningUnique: parseInt(overlapResult.rows[0].morning_unique),
+          nightUnique: parseInt(overlapResult.rows[0].night_unique),
+          overlapCount: parseInt(overlapResult.rows[0].overlap_count),
+          overlapPctMorning: parseFloat(overlapResult.rows[0].overlap_pct_morning) || 0,
+          overlapPctNight: parseFloat(overlapResult.rows[0].overlap_pct_night) || 0,
+          morningOnlyCount: parseInt(overlapResult.rows[0].morning_unique) - parseInt(overlapResult.rows[0].overlap_count),
+          nightOnlyCount: parseInt(overlapResult.rows[0].night_unique) - parseInt(overlapResult.rows[0].overlap_count),
+        }
+      : null;
+
     // Calcular cache até próximo domingo 23:50
     const maxAge = getSecondsUntilSundayNight();
     const staleWhileRevalidate = maxAge + 86400; // +24h após expirar
@@ -221,6 +267,7 @@ export async function GET(request: NextRequest) {
         dailyData,
         weekdayData,
         comparisonData,
+        overlapData,
         nightLaunchDate,
       },
       {

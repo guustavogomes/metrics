@@ -52,6 +52,15 @@ interface PixelData {
       change: number;
     };
   };
+  overlapData: {
+    morningUnique: number;
+    nightUnique: number;
+    overlapCount: number;
+    overlapPctMorning: number;
+    overlapPctNight: number;
+    morningOnlyCount: number;
+    nightOnlyCount: number;
+  } | null;
   nightLaunchDate: string;
 }
 
@@ -99,7 +108,7 @@ export function PixelDashboard() {
     );
   }
 
-  const { stats, dailyData, weekdayData, comparisonData, nightLaunchDate } = data;
+  const { stats, dailyData, weekdayData, comparisonData, overlapData, nightLaunchDate } = data;
 
   return (
     <div className="space-y-6">
@@ -333,6 +342,90 @@ export function PixelDashboard() {
           </p>
         </div>
       </Card>
+
+      {/* Card de Sobreposição de Leitores */}
+      {overlapData && (
+        <Card className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-indigo-600" />
+              Sobreposição de Leitores: Manhã vs Noite
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Análise de quantos leitores acompanham ambas as edições
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Apenas Manhã */}
+            <div className="bg-white rounded-lg p-4 border-2 border-amber-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Sun className="h-5 w-5 text-amber-600" />
+                <span className="text-sm font-semibold text-amber-600">Apenas Manhã</span>
+              </div>
+              <div className="text-3xl font-bold text-slate-900">
+                {overlapData.morningOnlyCount.toLocaleString()}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                {((overlapData.morningOnlyCount / overlapData.morningUnique) * 100).toFixed(1)}% dos leitores da manhã
+              </div>
+            </div>
+
+            {/* Ambas as Edições */}
+            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg p-4 border-2 border-purple-400 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="h-5 w-5 text-white" />
+                <span className="text-sm font-semibold text-white">Leem AMBAS</span>
+              </div>
+              <div className="text-3xl font-bold text-white">
+                {overlapData.overlapCount.toLocaleString()}
+              </div>
+              <div className="text-sm text-purple-100 mt-1">
+                {overlapData.overlapPctMorning.toFixed(1)}% da manhã | {overlapData.overlapPctNight.toFixed(1)}% da noite
+              </div>
+            </div>
+
+            {/* Apenas Noite */}
+            <div className="bg-white rounded-lg p-4 border-2 border-indigo-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Moon className="h-5 w-5 text-indigo-600" />
+                <span className="text-sm font-semibold text-indigo-600">Apenas Noite</span>
+              </div>
+              <div className="text-3xl font-bold text-slate-900">
+                {overlapData.nightOnlyCount.toLocaleString()}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                {((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1)}% dos leitores da noite
+              </div>
+            </div>
+          </div>
+
+          {/* Insights da Sobreposição */}
+          <div className="mt-4 p-4 bg-white/70 rounded-lg border border-indigo-100">
+            <p className="text-sm text-slate-700">
+              <strong>Insight:</strong>{' '}
+              {overlapData.overlapPctNight > 90 ? (
+                <span className="text-purple-700">
+                  Quase todos os leitores da noite ({overlapData.overlapPctNight.toFixed(1)}%) também leem a edição da manhã,
+                  indicando alta fidelidade da audiência. Apenas {overlapData.nightOnlyCount.toLocaleString()} leitores
+                  ({((overlapData.nightOnlyCount / overlapData.nightUnique) * 100).toFixed(1)}%)
+                  leem exclusivamente a edição noturna.
+                </span>
+              ) : overlapData.overlapPctNight > 70 ? (
+                <span className="text-indigo-700">
+                  A maioria dos leitores da noite ({overlapData.overlapPctNight.toFixed(1)}%) também lê a manhã,
+                  mostrando boa sobreposição de audiência.
+                </span>
+              ) : (
+                <span className="text-blue-700">
+                  Há um equilíbrio entre leitores exclusivos e leitores de ambas as edições,
+                  indicando que cada edição atrai públicos diferentes.
+                </span>
+              )}
+            </p>
+          </div>
+        </Card>
+      )}
 
       {/* Gráfico de Evolução Diária */}
       <Card className="p-6">
