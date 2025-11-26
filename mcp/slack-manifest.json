@@ -1,0 +1,48 @@
+{
+  "display_information": {
+    "name": "Pixel Analytics Bot",
+    "description": "Bot para análise de métricas do Pixel via Slack",
+    "background_color": "#2c2d30",
+    "long_description": "Bot que permite solicitar análises de dados do Pixel através de comandos no Slack. Fornece estatísticas de leitores, análise de overlap entre edições e métricas de receita e monetização."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Pixel Analytics Bot",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/pixel",
+        "description": "Análise de métricas do Pixel",
+        "usage_hint": "stats [dias] | overlap [dias] | revenue [dias] | help",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "chat:write",
+        "commands",
+        "im:read",
+        "im:write",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "socket_mode_enabled": true,
+    "org_deploy_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
+
