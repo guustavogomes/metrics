@@ -1,0 +1,28 @@
+{
+  "name": "pixel-slack-bot",
+  "version": "1.0.0",
+  "description": "Bot Slack para métricas do Pixel",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx server.ts",
+    "update-stats": "node dist/scripts/update-all-stats.js",
+    "sync-posts": "node dist/scripts/sync-pixel-posts.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.6.0",
+    "@slack/web-api": "^7.12.0",
+    "dotenv": "^17.2.3",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

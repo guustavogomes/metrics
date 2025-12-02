@@ -1,4 +1,5 @@
-import { Block } from "@slack/web-api";
+// Usando any para blocos do Slack devido a incompatibilidade de tipos
+type SlackBlock = any;
 
 /**
  * Formata números com separadores de milhar
@@ -30,8 +31,8 @@ function formatPercent(value: number, decimals: number = 1): string {
 /**
  * Cria blocos de mensagem para estatísticas do Pixel
  */
-export function formatPixelStats(stats: any, days: number): Block[] {
-  const blocks: Block[] = [
+export function formatPixelStats(stats: any, days: number): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -79,8 +80,8 @@ export function formatPixelStats(stats: any, days: number): Block[] {
 /**
  * Cria blocos de mensagem para overlap e receita
  */
-export function formatOverlapRevenue(data: any): Block[] {
-  const blocks: Block[] = [
+export function formatOverlapRevenue(data: any): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -191,8 +192,8 @@ export function formatOverlapRevenue(data: any): Block[] {
 /**
  * Cria blocos de mensagem para estatísticas de receita
  */
-export function formatRevenueStats(data: any): Block[] {
-  const blocks: Block[] = [
+export function formatRevenueStats(data: any): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -275,7 +276,7 @@ export function formatRevenueStats(data: any): Block[] {
 /**
  * Cria mensagem de erro
  */
-export function formatError(message: string): Block[] {
+export function formatError(message: string): SlackBlock[] {
   return [
     {
       type: "section",
@@ -290,8 +291,8 @@ export function formatError(message: string): Block[] {
 /**
  * Cria blocos de mensagem para comparação antes/depois
  */
-export function formatComparisonData(data: any): Block[] {
-  const blocks: Block[] = [
+export function formatComparisonData(data: any): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -368,8 +369,8 @@ export function formatComparisonData(data: any): Block[] {
 /**
  * Cria blocos de mensagem para dados por dia da semana
  */
-export function formatWeekdayData(data: any[], days: number): Block[] {
-  const blocks: Block[] = [
+export function formatWeekdayData(data: any[], days: number): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -434,8 +435,8 @@ export function formatWeekdayData(data: any[], days: number): Block[] {
 /**
  * Cria blocos de mensagem para evolução diária
  */
-export function formatDailyData(data: any[], days: number): Block[] {
-  const blocks: Block[] = [
+export function formatDailyData(data: any[], days: number): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -500,10 +501,10 @@ export function formatDailyData(data: any[], days: number): Block[] {
 /**
  * Cria blocos de mensagem para taxa de N edições na semana
  */
-export function formatWeeklyEditions(data: any[]): Block[] {
+export function formatWeeklyEditions(data: any[]): SlackBlock[] {
   const filterDescription = data[0]?.filterDescription || "7 edições";
   
-  const blocks: Block[] = [
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -626,8 +627,8 @@ export function formatWeeklyDistribution(data: {
       percentage: number;
     }>;
   } | null;
-}): Block[] {
-  const blocks: Block[] = [
+}): SlackBlock[] {
+  const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
@@ -736,21 +737,22 @@ export function formatWeeklyDistribution(data: {
     });
   }
 
-  // Insights
+  // Insights (índices: 0=1/7, 1=2/7, ..., 6=7/7)
   const current = data.currentWeek.distribution;
-  const noEditions = current[0]?.percentage || 0;
-  const fullEditions = current[7]?.percentage || 0;
-  const highEngagement = current.slice(4).reduce((sum, i) => sum + i.percentage, 0); // 4+ edições
+  const oneEdition = current[0]?.percentage || 0; // 1/7
+  const fullEditions = current[6]?.percentage || 0; // 7/7
+  const highEngagement = current.slice(3).reduce((sum, i) => sum + i.percentage, 0); // 4+ edições (índices 3-6 = 4/7 a 7/7)
+  const lowEngagement = current.slice(0, 2).reduce((sum, i) => sum + i.percentage, 0); // 1-2 edições
 
   let insight = "";
-  if (noEditions > 40) {
-    insight = `⚠️ ${formatPercent(noEditions)} dos usuários não abriram nenhuma edição. Considere estratégias de reengajamento.`;
+  if (lowEngagement > 50) {
+    insight = `⚠️ ${formatPercent(lowEngagement)} dos usuários abriram apenas 1-2 edições. Considere estratégias de engajamento.`;
   } else if (fullEditions > 10) {
     insight = `🌟 ${formatPercent(fullEditions)} abriram todas as 7 edições! Excelente fidelização.`;
   } else if (highEngagement > 30) {
     insight = `✅ ${formatPercent(highEngagement)} dos usuários abriram 4+ edições, mostrando bom engajamento.`;
   } else {
-    insight = `📊 Distribuição equilibrada. ${formatPercent(100 - noEditions)} da base teve pelo menos 1 abertura.`;
+    insight = `📊 Distribuição equilibrada entre os níveis de engajamento.`;
   }
 
   blocks.push({
@@ -767,7 +769,7 @@ export function formatWeeklyDistribution(data: {
 /**
  * Cria mensagem de ajuda
  */
-export function formatHelp(): Block[] {
+export function formatHelp(): SlackBlock[] {
   return [
     {
       type: "header",
@@ -791,7 +793,7 @@ export function formatHelp(): Block[] {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: "`/pixel stats [dias]` - Estatísticas gerais do Pixel\n`/pixel overlap [dias]` - Análise de overlap e receita\n`/pixel revenue [dias]` - Estatísticas de receita\n`/pixel comparison` - Comparação Ago-Set vs Out+\n`/pixel weekday [dias]` - Análise por dia da semana\n`/pixel daily [dias]` - Evolução diária resumida\n`/pixel weekly [filtro] [semanas]` - % usuários com filtro de edições (ex: 7, 4+, -3)\n`/pixel distribuicao` - Distribuição completa 0/7 a 7/7 com comparativo\n`/pixel help` - Mostra esta ajuda",
+        text: "`/pixel stats [dias]` - Estatísticas gerais do Pixel\n`/pixel overlap [dias]` - Análise de overlap e receita\n`/pixel revenue [dias]` - Estatísticas de receita\n`/pixel comparison` - Comparação Ago-Set vs Out+\n`/pixel weekday [dias]` - Análise por dia da semana\n`/pixel daily [dias]` - Evolução diária resumida\n`/pixel weekly [filtro] [semanas]` - % usuários com filtro de edições (ex: 7, 4+, -3)\n`/pixel distribuicao` - Distribuição completa 1/7 a 7/7 com comparativo\n`/pixel help` - Mostra esta ajuda",
       },
     },
     {

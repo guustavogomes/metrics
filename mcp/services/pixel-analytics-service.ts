@@ -719,13 +719,13 @@ export class PixelAnalyticsService {
     // Converter para array ordenado por data (mais recente primeiro)
     const weeksArray = Array.from(weeklyData.values());
 
-    // Formatar distribuição com todos os buckets (0-7)
+    // Formatar distribuição com buckets de 1-7 (0/7 não é mensurável pelo Pixel)
     const formatDistribution = (
       distMap: Map<number, { count: number; percentage: number }>,
       totalUsers: number
     ) => {
       const buckets = [];
-      for (let i = 0; i <= 7; i++) {
+      for (let i = 1; i <= 7; i++) {
         const data = distMap.get(i);
         buckets.push({
           bucket: `${i}/7`,
