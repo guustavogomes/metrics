@@ -1,7 +1,7 @@
 import { App } from "@slack/bolt";
 import dotenv from "dotenv";
 import path from "path";
-import { PixelAnalyticsService } from "./services/pixel-analytics-service";
+import { PixelAnalyticsService, UtmFilter } from "./services/pixel-analytics-service";
 import {
   formatPixelStats,
   formatOverlapRevenue,
@@ -11,9 +11,51 @@ import {
   formatDailyData,
   formatWeeklyEditions,
   formatWeeklyDistribution,
+  formatUtmValues,
   formatError,
   formatHelp,
 } from "./utils/slack-formatter";
+
+/**
+ * Parseia parâmetros de filtro UTM do comando
+ * Formato: canal:valor ou source:valor ou medium:valor
+ * Exemplo: /pixel stats 30 canal:socialpaid
+ */
+function parseUtmFilter(params: string[]): UtmFilter | undefined {
+  const utmFilter: UtmFilter = {};
+
+  for (const param of params) {
+    // Formato: canal:valor, source:valor, medium:valor
+    if (param.includes(":")) {
+      const [key, value] = param.split(":", 2);
+      const lowerKey = key.toLowerCase();
+
+      if (lowerKey === "canal" || lowerKey === "medium" || lowerKey === "utm_medium") {
+        utmFilter.utm_medium = value;
+      } else if (lowerKey === "source" || lowerKey === "fonte" || lowerKey === "utm_source") {
+        utmFilter.utm_source = value;
+      } else if (lowerKey === "campaign" || lowerKey === "campanha" || lowerKey === "utm_campaign") {
+        utmFilter.utm_campaign = value;
+      }
+    }
+  }
+
+  return Object.keys(utmFilter).length > 0 ? utmFilter : undefined;
+}
+
+/**
+ * Gera descrição do filtro UTM para exibição
+ */
+function getUtmFilterDescription(filter?: UtmFilter): string {
+  if (!filter) return "";
+
+  const parts: string[] = [];
+  if (filter.utm_medium) parts.push(`canal: ${filter.utm_medium}`);
+  if (filter.utm_source) parts.push(`fonte: ${filter.utm_source}`);
+  if (filter.utm_campaign) parts.push(`campanha: ${filter.utm_campaign}`);
+
+  return parts.length > 0 ? ` [Filtro: ${parts.join(", ")}]` : "";
+}
 
 // Carregar variáveis de ambiente da pasta mcp/
 // Tenta primeiro na pasta mcp/, depois na raiz do projeto
@@ -54,8 +96,15 @@ app.command("/pixel", async ({ command, ack, respond }) => {
   try {
     const parts = command.text.trim().split(/\s+/);
     const action = parts[0]?.toLowerCase() || "";
-    const param1 = parts[1];
-    const param2 = parts[2];
+    const restParams = parts.slice(1);
+
+    // Separar parâmetros numéricos dos filtros UTM
+    const numericParams = restParams.filter((p) => !p.includes(":"));
+    const utmFilter = parseUtmFilter(restParams);
+    const filterDesc = getUtmFilterDescription(utmFilter);
+
+    const param1 = numericParams[0];
+    const param2 = numericParams[1];
 
     // Se não há action, mostrar help
     if (!action || action === "help" || action === "ajuda") {
@@ -76,9 +125,9 @@ app.command("/pixel", async ({ command, ack, respond }) => {
           });
           return;
         }
-        console.log(`📊 Buscando stats (${statsDays} dias)...`);
-        const stats = await analyticsService.getStats(statsDays);
-        blocks = formatPixelStats(stats, statsDays);
+        console.log(`📊 Buscando stats (${statsDays} dias)${filterDesc}...`);
+        const stats = await analyticsService.getStats(statsDays, utmFilter);
+        blocks = formatPixelStats(stats, statsDays, utmFilter);
         break;
 
       case "overlap":
@@ -91,9 +140,9 @@ app.command("/pixel", async ({ command, ack, respond }) => {
           });
           return;
         }
-        console.log(`📊 Buscando overlap (${overlapDays} dias)...`);
-        const overlap = await analyticsService.getOverlapRevenue(overlapDays);
-        blocks = formatOverlapRevenue(overlap);
+        console.log(`📊 Buscando overlap (${overlapDays} dias)${filterDesc}...`);
+        const overlap = await analyticsService.getOverlapRevenue(overlapDays, utmFilter);
+        blocks = formatOverlapRevenue(overlap, utmFilter);
         break;
 
       case "revenue":
@@ -131,9 +180,9 @@ app.command("/pixel", async ({ command, ack, respond }) => {
           });
           return;
         }
-        console.log(`📅 Buscando dados por dia da semana (${weekdayDays} dias)...`);
-        const weekday = await analyticsService.getWeekdayData(weekdayDays);
-        blocks = formatWeekdayData(weekday, weekdayDays);
+        console.log(`📅 Buscando dados por dia da semana (${weekdayDays} dias)${filterDesc}...`);
+        const weekday = await analyticsService.getWeekdayData(weekdayDays, utmFilter);
+        blocks = formatWeekdayData(weekday, weekdayDays, utmFilter);
         break;
 
       case "daily":
@@ -148,9 +197,9 @@ app.command("/pixel", async ({ command, ack, respond }) => {
           });
           return;
         }
-        console.log(`📈 Buscando evolução diária (${dailyDays} dias)...`);
-        const daily = await analyticsService.getDailyData(dailyDays);
-        blocks = formatDailyData(daily, dailyDays);
+        console.log(`📈 Buscando evolução diária (${dailyDays} dias)${filterDesc}...`);
+        const daily = await analyticsService.getDailyData(dailyDays, utmFilter);
+        blocks = formatDailyData(daily, dailyDays, utmFilter);
         break;
 
       case "weekly":
@@ -222,18 +271,26 @@ app.command("/pixel", async ({ command, ack, respond }) => {
           return;
         }
         
-        console.log(`📊 Buscando taxa de ${editionsFilter} edições (${weeks} semanas)...`);
-        const weekly = await analyticsService.getWeeklyEditionsRate(editionsFilter, weeks);
-        blocks = formatWeeklyEditions(weekly);
+        console.log(`📊 Buscando taxa de ${editionsFilter} edições (${weeks} semanas)${filterDesc}...`);
+        const weekly = await analyticsService.getWeeklyEditionsRate(editionsFilter, weeks, utmFilter);
+        blocks = formatWeeklyEditions(weekly, utmFilter);
         break;
 
       case "distribution":
       case "distribuicao":
       case "distribuição":
       case "dist":
-        console.log(`📊 Buscando distribuição de edições semanais...`);
-        const distribution = await analyticsService.getWeeklyEditionsDistribution(2);
-        blocks = formatWeeklyDistribution(distribution);
+        console.log(`📊 Buscando distribuição de edições semanais${filterDesc}...`);
+        const distribution = await analyticsService.getWeeklyEditionsDistribution(2, utmFilter);
+        blocks = formatWeeklyDistribution(distribution, utmFilter);
+        break;
+
+      case "canais":
+      case "channels":
+      case "utm":
+        console.log(`📊 Listando canais UTM disponíveis...`);
+        const utmValues = await analyticsService.getUtmValues();
+        blocks = formatUtmValues(utmValues);
         break;
 
       default:

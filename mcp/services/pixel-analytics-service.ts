@@ -11,6 +11,44 @@ const pixelPool = new Pool({
 
 const DATA_START_DATE = "2025-08-01";
 
+/**
+ * Filtro UTM para segmentar dados por canal de entrada
+ * Campos disponíveis: utm_source, utm_medium, utm_campaign, utm_channel
+ */
+export interface UtmFilter {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_channel?: string;
+}
+
+/**
+ * Gera cláusula WHERE SQL para filtros UTM
+ * @param filter - Filtro UTM opcional
+ * @param tableAlias - Alias da tabela (ex: "pt" para pixel_tracking_optimized)
+ * @returns String SQL para adicionar ao WHERE, ou vazio se sem filtro
+ */
+function buildUtmWhereClause(filter?: UtmFilter, tableAlias: string = "pt"): string {
+  if (!filter) return "";
+
+  const conditions: string[] = [];
+
+  if (filter.utm_source) {
+    conditions.push(`${tableAlias}.utm_source = '${filter.utm_source.replace(/'/g, "''")}'`);
+  }
+  if (filter.utm_medium) {
+    conditions.push(`${tableAlias}.utm_medium = '${filter.utm_medium.replace(/'/g, "''")}'`);
+  }
+  if (filter.utm_campaign) {
+    conditions.push(`${tableAlias}.utm_campaign = '${filter.utm_campaign.replace(/'/g, "''")}'`);
+  }
+  if (filter.utm_channel) {
+    conditions.push(`${tableAlias}.utm_channel = '${filter.utm_channel.replace(/'/g, "''")}'`);
+  }
+
+  return conditions.length > 0 ? ` AND ${conditions.join(" AND ")}` : "";
+}
+
 export interface PixelStats {
   morning: {
     total: number;
@@ -86,8 +124,48 @@ export interface RevenueStats {
 export class PixelAnalyticsService {
   /**
    * Busca estatísticas gerais do Pixel
+   * @param days - Número de dias para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
-  async getStats(days: number = 30): Promise<PixelStats> {
+  async getStats(days: number = 30, utmFilter?: UtmFilter): Promise<PixelStats> {
+    // Se houver filtro UTM, consultar diretamente a tabela (não usa cache)
+    if (utmFilter && Object.keys(utmFilter).length > 0) {
+      const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+      const statsQuery = `
+        SELECT
+          pm.edition_type,
+          COUNT(DISTINCT pt.email) as unique_readers,
+          COUNT(*) as total_opens
+        FROM pixel_tracking_optimized pt
+        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+        WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          AND pt.first_open_at >= '${DATA_START_DATE}'::timestamp
+          ${utmCondition}
+        GROUP BY pm.edition_type
+      `;
+
+      const result = await pixelPool.query(statsQuery);
+
+      const stats: PixelStats = {
+        morning: { total: 0, average: 0, uniqueReaders: 0 },
+        night: { total: 0, average: 0, uniqueReaders: 0 },
+        sunday: { total: 0, average: 0, uniqueReaders: 0 },
+      };
+
+      result.rows.forEach((row) => {
+        const type = row.edition_type as "morning" | "night" | "sunday";
+        const uniqueReaders = parseInt(row.unique_readers);
+        stats[type] = {
+          total: uniqueReaders,
+          average: Math.round(uniqueReaders / days),
+          uniqueReaders: uniqueReaders,
+        };
+      });
+
+      return stats;
+    }
+
+    // Sem filtro UTM, usar cache
     const statsQuery = `
       SELECT
         edition_type,
@@ -120,27 +198,33 @@ export class PixelAnalyticsService {
 
   /**
    * Busca dados de overlap e receita
+   * @param days - Número de dias para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
-  async getOverlapRevenue(days: number = 30): Promise<OverlapRevenueData> {
+  async getOverlapRevenue(days: number = 30, utmFilter?: UtmFilter): Promise<OverlapRevenueData> {
+    const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+
     const overlapRevenueQuery = `
       WITH morning_readers AS (
-        SELECT DISTINCT 
+        SELECT DISTINCT
           pt.email,
           COUNT(*) as total_opens
         FROM pixel_tracking_optimized pt
         INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
         WHERE pm.edition_type = 'morning'
           AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          ${utmCondition}
         GROUP BY pt.email
       ),
       night_readers AS (
-        SELECT DISTINCT 
+        SELECT DISTINCT
           pt.email,
           COUNT(*) as total_opens
         FROM pixel_tracking_optimized pt
         INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
         WHERE pm.edition_type = 'night'
           AND pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          ${utmCondition}
         GROUP BY pt.email
       ),
       both_readers AS (
@@ -420,22 +504,46 @@ export class PixelAnalyticsService {
 
   /**
    * Busca dados por dia da semana
+   * @param days - Número de dias para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
-  async getWeekdayData(days: number = 30): Promise<
+  async getWeekdayData(days: number = 30, utmFilter?: UtmFilter): Promise<
     Array<{ day: string; morning: number; night: number; sunday: number }>
   > {
-    const weekdayQuery = `
-      SELECT
-        day_of_week,
-        edition_type,
-        SUM(unique_readers) as unique_readers,
-        SUM(total_opens) as total_opens
-      FROM pixel_daily_stats
-      WHERE date >= NOW() - INTERVAL '${days} days'
-        AND date >= '${DATA_START_DATE}'::date
-      GROUP BY day_of_week, edition_type
-      ORDER BY day_of_week
-    `;
+    let weekdayQuery: string;
+
+    // Se houver filtro UTM, consultar diretamente a tabela (não usa cache)
+    if (utmFilter && Object.keys(utmFilter).length > 0) {
+      const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+      weekdayQuery = `
+        SELECT
+          EXTRACT(DOW FROM pt.first_open_at)::int as day_of_week,
+          pm.edition_type,
+          COUNT(DISTINCT pt.email) as unique_readers,
+          COUNT(*) as total_opens
+        FROM pixel_tracking_optimized pt
+        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+        WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          AND pt.first_open_at >= '${DATA_START_DATE}'::timestamp
+          ${utmCondition}
+        GROUP BY EXTRACT(DOW FROM pt.first_open_at), pm.edition_type
+        ORDER BY day_of_week
+      `;
+    } else {
+      // Sem filtro UTM, usar cache
+      weekdayQuery = `
+        SELECT
+          day_of_week,
+          edition_type,
+          SUM(unique_readers) as unique_readers,
+          SUM(total_opens) as total_opens
+        FROM pixel_daily_stats
+        WHERE date >= NOW() - INTERVAL '${days} days'
+          AND date >= '${DATA_START_DATE}'::date
+        GROUP BY day_of_week, edition_type
+        ORDER BY day_of_week
+      `;
+    }
 
     const result = await pixelPool.query(weekdayQuery);
 
@@ -467,21 +575,45 @@ export class PixelAnalyticsService {
 
   /**
    * Busca evolução diária resumida (últimos 7 dias)
+   * @param days - Número de dias para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
-  async getDailyData(days: number = 7): Promise<
+  async getDailyData(days: number = 7, utmFilter?: UtmFilter): Promise<
     Array<{ date: string; morning: number; night: number; sunday: number }>
   > {
-    const dailyQuery = `
-      SELECT
-        date,
-        edition_type,
-        unique_readers,
-        total_opens
-      FROM pixel_daily_stats
-      WHERE date >= NOW() - INTERVAL '${days} days'
-        AND date >= '${DATA_START_DATE}'::date
-      ORDER BY date
-    `;
+    let dailyQuery: string;
+
+    // Se houver filtro UTM, consultar diretamente a tabela (não usa cache)
+    if (utmFilter && Object.keys(utmFilter).length > 0) {
+      const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+      dailyQuery = `
+        SELECT
+          DATE(pt.first_open_at) as date,
+          pm.edition_type,
+          COUNT(DISTINCT pt.email) as unique_readers,
+          COUNT(*) as total_opens
+        FROM pixel_tracking_optimized pt
+        INNER JOIN posts_metadata pm ON pt.post_id = pm.post_id
+        WHERE pt.first_open_at >= NOW() - INTERVAL '${days} days'
+          AND pt.first_open_at >= '${DATA_START_DATE}'::timestamp
+          ${utmCondition}
+        GROUP BY DATE(pt.first_open_at), pm.edition_type
+        ORDER BY date
+      `;
+    } else {
+      // Sem filtro UTM, usar cache
+      dailyQuery = `
+        SELECT
+          date,
+          edition_type,
+          unique_readers,
+          total_opens
+        FROM pixel_daily_stats
+        WHERE date >= NOW() - INTERVAL '${days} days'
+          AND date >= '${DATA_START_DATE}'::date
+        ORDER BY date
+      `;
+    }
 
     const result = await pixelPool.query(dailyQuery);
 
@@ -516,10 +648,14 @@ export class PixelAnalyticsService {
    * - N (exatamente N edições)
    * - N+ (N ou mais edições)
    * - -N (menos de N edições)
+   * @param editionsFilter - Filtro de edições (ex: "7", "4+", "-3")
+   * @param weeks - Número de semanas para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
   async getWeeklyEditionsRate(
     editionsFilter: string, // Ex: "7", "4+", "-3"
-    weeks: number = 4
+    weeks: number = 4,
+    utmFilter?: UtmFilter
   ): Promise<{
     week: string;
     totalUsers: number;
@@ -565,6 +701,9 @@ export class PixelAnalyticsService {
       filterDescription = `menos de ${editionsNumber} edições`;
     }
 
+    // Adicionar filtro UTM se fornecido
+    const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+
     // Query que agrupa por semana e conta edições por usuário
     const query = `
       WITH weekly_editions AS (
@@ -578,6 +717,7 @@ export class PixelAnalyticsService {
           AND pt.first_open_at >= '${DATA_START_DATE}'::timestamp
           AND EXTRACT(DOW FROM pt.first_open_at) BETWEEN 1 AND 6  -- Segunda (1) a Sábado (6)
           AND pm.edition_type != 'sunday'  -- Excluir edições de domingo
+          ${utmCondition}
         GROUP BY DATE_TRUNC('week', pt.first_open_at) + INTERVAL '1 day', pt.email
       ),
       weekly_stats AS (
@@ -617,9 +757,12 @@ export class PixelAnalyticsService {
    * Busca distribuição completa de edições semanais (0/7 até 7/7)
    * Retorna a porcentagem de usuários para cada bucket de edições
    * Com comparativo entre semanas
+   * @param weeks - Número de semanas para análise
+   * @param utmFilter - Filtro UTM opcional para segmentar por canal de entrada
    */
   async getWeeklyEditionsDistribution(
-    weeks: number = 2
+    weeks: number = 2,
+    utmFilter?: UtmFilter
   ): Promise<{
     currentWeek: {
       weekStart: string;
@@ -640,6 +783,9 @@ export class PixelAnalyticsService {
       }>;
     } | null;
   }> {
+    // Adicionar filtro UTM se fornecido
+    const utmCondition = buildUtmWhereClause(utmFilter, "pt");
+
     // Query que calcula a distribuição de edições por semana
     const query = `
       WITH weekly_editions AS (
@@ -653,6 +799,7 @@ export class PixelAnalyticsService {
           AND pt.first_open_at >= '${DATA_START_DATE}'::timestamp
           AND EXTRACT(DOW FROM pt.first_open_at) BETWEEN 1 AND 6
           AND pm.edition_type != 'sunday'
+          ${utmCondition}
         GROUP BY DATE_TRUNC('week', pt.first_open_at) + INTERVAL '1 day', pt.email
       ),
       capped_editions AS (
@@ -764,6 +911,50 @@ export class PixelAnalyticsService {
             ),
           }
         : null,
+    };
+  }
+
+  /**
+   * Lista os valores UTM disponíveis para filtragem
+   * Retorna os top 15 valores mais usados de cada campo UTM
+   */
+  async getUtmValues(): Promise<{
+    utm_medium: Array<{ value: string; count: number }>;
+    utm_source: Array<{ value: string; count: number }>;
+  }> {
+    const [mediumResult, sourceResult] = await Promise.all([
+      pixelPool.query(`
+        SELECT utm_medium as value, COUNT(*) as count
+        FROM pixel_tracking_optimized
+        WHERE utm_medium IS NOT NULL
+          AND utm_medium NOT LIKE '3D%'
+          AND LENGTH(utm_medium) > 2
+        GROUP BY utm_medium
+        ORDER BY count DESC
+        LIMIT 15
+      `),
+      pixelPool.query(`
+        SELECT utm_source as value, COUNT(*) as count
+        FROM pixel_tracking_optimized
+        WHERE utm_source IS NOT NULL
+          AND utm_source NOT LIKE '3D%'
+          AND utm_source NOT LIKE '%[%'
+          AND LENGTH(utm_source) > 2
+        GROUP BY utm_source
+        ORDER BY count DESC
+        LIMIT 15
+      `),
+    ]);
+
+    return {
+      utm_medium: mediumResult.rows.map((row) => ({
+        value: row.value,
+        count: parseInt(row.count),
+      })),
+      utm_source: sourceResult.rows.map((row) => ({
+        value: row.value,
+        count: parseInt(row.count),
+      })),
     };
   }
 

@@ -1,6 +1,28 @@
 // Usando any para blocos do Slack devido a incompatibilidade de tipos
 type SlackBlock = any;
 
+// Importar tipo UTM do serviço
+interface UtmFilter {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_channel?: string;
+}
+
+/**
+ * Gera descrição do filtro UTM para exibição nos headers
+ */
+function getUtmFilterLabel(filter?: UtmFilter): string {
+  if (!filter) return "";
+
+  const parts: string[] = [];
+  if (filter.utm_medium) parts.push(`canal: ${filter.utm_medium}`);
+  if (filter.utm_source) parts.push(`fonte: ${filter.utm_source}`);
+  if (filter.utm_campaign) parts.push(`campanha: ${filter.utm_campaign}`);
+
+  return parts.length > 0 ? ` | ${parts.join(", ")}` : "";
+}
+
 /**
  * Formata números com separadores de milhar
  */
@@ -31,13 +53,14 @@ function formatPercent(value: number, decimals: number = 1): string {
 /**
  * Cria blocos de mensagem para estatísticas do Pixel
  */
-export function formatPixelStats(stats: any, days: number): SlackBlock[] {
+export function formatPixelStats(stats: any, days: number, utmFilter?: UtmFilter): SlackBlock[] {
+  const filterLabel = getUtmFilterLabel(utmFilter);
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `📊 Estatísticas do Pixel (${days} dias)`,
+        text: `📊 Estatísticas do Pixel (${days} dias)${filterLabel}`,
         emoji: true,
       },
     },
@@ -80,13 +103,14 @@ export function formatPixelStats(stats: any, days: number): SlackBlock[] {
 /**
  * Cria blocos de mensagem para overlap e receita
  */
-export function formatOverlapRevenue(data: any): SlackBlock[] {
+export function formatOverlapRevenue(data: any, utmFilter?: UtmFilter): SlackBlock[] {
+  const filterLabel = getUtmFilterLabel(utmFilter);
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `💰 Overlap & Receita (${data.period} dias)`,
+        text: `💰 Overlap & Receita (${data.period} dias)${filterLabel}`,
         emoji: true,
       },
     },
@@ -369,13 +393,14 @@ export function formatComparisonData(data: any): SlackBlock[] {
 /**
  * Cria blocos de mensagem para dados por dia da semana
  */
-export function formatWeekdayData(data: any[], days: number): SlackBlock[] {
+export function formatWeekdayData(data: any[], days: number, utmFilter?: UtmFilter): SlackBlock[] {
+  const filterLabel = getUtmFilterLabel(utmFilter);
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `📅 Aberturas por Dia da Semana (${days} dias)`,
+        text: `📅 Aberturas por Dia da Semana (${days} dias)${filterLabel}`,
         emoji: true,
       },
     },
@@ -435,13 +460,14 @@ export function formatWeekdayData(data: any[], days: number): SlackBlock[] {
 /**
  * Cria blocos de mensagem para evolução diária
  */
-export function formatDailyData(data: any[], days: number): SlackBlock[] {
+export function formatDailyData(data: any[], days: number, utmFilter?: UtmFilter): SlackBlock[] {
+  const filterLabel = getUtmFilterLabel(utmFilter);
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `📈 Evolução Diária (últimos ${days} dias)`,
+        text: `📈 Evolução Diária (últimos ${days} dias)${filterLabel}`,
         emoji: true,
       },
     },
@@ -501,15 +527,16 @@ export function formatDailyData(data: any[], days: number): SlackBlock[] {
 /**
  * Cria blocos de mensagem para taxa de N edições na semana
  */
-export function formatWeeklyEditions(data: any[]): SlackBlock[] {
+export function formatWeeklyEditions(data: any[], utmFilter?: UtmFilter): SlackBlock[] {
   const filterDescription = data[0]?.filterDescription || "7 edições";
+  const filterLabel = getUtmFilterLabel(utmFilter);
   
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `📊 Taxa de Usuários com ${filterDescription}`,
+        text: `📊 Taxa de Usuários com ${filterDescription}${filterLabel}`,
         emoji: true,
       },
     },
@@ -627,13 +654,14 @@ export function formatWeeklyDistribution(data: {
       percentage: number;
     }>;
   } | null;
-}): SlackBlock[] {
+}, utmFilter?: UtmFilter): SlackBlock[] {
+  const filterLabel = getUtmFilterLabel(utmFilter);
   const blocks: SlackBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `📊 Distribuição de Edições Semanais`,
+        text: `📊 Distribuição de Edições Semanais${filterLabel}`,
         emoji: true,
       },
     },
@@ -767,6 +795,96 @@ export function formatWeeklyDistribution(data: {
 }
 
 /**
+ * Cria blocos de mensagem para lista de canais UTM disponíveis
+ */
+export function formatUtmValues(data: {
+  utm_medium: Array<{ value: string; count: number }>;
+  utm_source: Array<{ value: string; count: number }>;
+}): SlackBlock[] {
+  const blocks: SlackBlock[] = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: "📡 Canais UTM Disponíveis",
+        emoji: true,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "*Use estes valores para filtrar os dados por canal de entrada*\nFormato: `canal:valor` ou `fonte:valor`",
+      },
+    },
+    {
+      type: "divider",
+    },
+  ];
+
+  // UTM Medium (Canal)
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: "*🔗 Canais (utm_medium):*",
+    },
+  });
+
+  const mediumList = data.utm_medium
+    .map((item) => `• \`${item.value}\` (${formatNumber(item.count)} leitores)`)
+    .join("\n");
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: mediumList || "Nenhum canal encontrado",
+    },
+  });
+
+  // UTM Source (Fonte)
+  blocks.push({
+    type: "divider",
+  });
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: "*📍 Fontes (utm_source):*",
+    },
+  });
+
+  const sourceList = data.utm_source
+    .map((item) => `• \`${item.value}\` (${formatNumber(item.count)} leitores)`)
+    .join("\n");
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: sourceList || "Nenhuma fonte encontrada",
+    },
+  });
+
+  // Exemplos
+  blocks.push({
+    type: "divider",
+  });
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: "*💡 Exemplos de uso:*\n• `/pixel stats 30 canal:socialpaid` - Stats apenas de tráfego pago\n• `/pixel stats 30 fonte:meta` - Stats apenas de Meta Ads\n• `/pixel weekly 7 canal:instagrambio` - Taxa 7/7 de Instagram bio\n• `/pixel overlap 30 canal:newsletter` - Overlap de assinantes de newsletter",
+    },
+  });
+
+  return blocks;
+}
+
+/**
  * Cria mensagem de ajuda
  */
 export function formatHelp(): SlackBlock[] {
@@ -793,14 +911,21 @@ export function formatHelp(): SlackBlock[] {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: "`/pixel stats [dias]` - Estatísticas gerais do Pixel\n`/pixel overlap [dias]` - Análise de overlap e receita\n`/pixel revenue [dias]` - Estatísticas de receita\n`/pixel comparison` - Comparação Ago-Set vs Out+\n`/pixel weekday [dias]` - Análise por dia da semana\n`/pixel daily [dias]` - Evolução diária resumida\n`/pixel weekly [filtro] [semanas]` - % usuários com filtro de edições (ex: 7, 4+, -3)\n`/pixel distribuicao` - Distribuição completa 1/7 a 7/7 com comparativo\n`/pixel help` - Mostra esta ajuda",
+        text: "`/pixel stats [dias]` - Estatísticas gerais do Pixel\n`/pixel overlap [dias]` - Análise de overlap e receita\n`/pixel revenue [dias]` - Estatísticas de receita\n`/pixel comparison` - Comparação Ago-Set vs Out+\n`/pixel weekday [dias]` - Análise por dia da semana\n`/pixel daily [dias]` - Evolução diária resumida\n`/pixel weekly [filtro] [semanas]` - % usuários com filtro de edições\n`/pixel distribuicao` - Distribuição completa 1/7 a 7/7\n`/pixel canais` - Lista canais UTM disponíveis\n`/pixel help` - Mostra esta ajuda",
       },
     },
     {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: "*Exemplos:*\n• `/pixel stats 30` - Stats dos últimos 30 dias\n• `/pixel overlap 90` - Overlap dos últimos 90 dias\n• `/pixel revenue 7` - Receita dos últimos 7 dias\n• `/pixel comparison` - Comparação antes/depois\n• `/pixel weekday 30` - Análise por dia da semana\n• `/pixel daily 7` - Evolução dos últimos 7 dias\n• `/pixel weekly 7` - Taxa de exatamente 7 edições\n• `/pixel weekly 4+` - Taxa de 4 ou mais edições\n• `/pixel weekly -3` - Taxa de menos de 3 edições\n• `/pixel weekly 5+ 8` - Taxa de 5+ edições nas últimas 8 semanas\n• `/pixel distribuicao` - Tabela completa de distribuição semanal",
+        text: "*Filtro por canal UTM:*\nAdicione `canal:valor` ou `fonte:valor` a qualquer comando\n• `/pixel stats 30 canal:socialpaid` - Stats de tráfego pago\n• `/pixel stats 30 fonte:meta` - Stats de Meta Ads\n• `/pixel weekly 7 canal:instagrambio` - Taxa 7/7 do Instagram\n• `/pixel canais` - Ver todos os canais disponíveis",
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "*Exemplos gerais:*\n• `/pixel stats 30` - Stats dos últimos 30 dias\n• `/pixel overlap 90` - Overlap dos últimos 90 dias\n• `/pixel weekly 7` - Taxa de exatamente 7 edições\n• `/pixel weekly 4+` - Taxa de 4 ou mais edições\n• `/pixel weekly -3` - Taxa de menos de 3 edições",
       },
     },
   ];
